@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
+
+package registry;
+
+service Registry {
+	rpc Register(stream Message) returns (stream Message) {}
+}
+
+enum MessageType {
+	// Message describes an update to a nodes entry in the registry.
+	NODE_UPDATE = 0;
+
+	// Messages contains a heartbeat, used to check for liveness.
+	HEARTBEAT = 1;
+
+	// Messages contains an error.
+	ERROR = 2;
+}
+
+message Message {
+	MessageType MessageType = 1;
+	optional NodeUpdate NodeUpdate = 2;
+	optional Heartbeat Heartbeat = 3;
+	optional Error Error = 4;
+}
+
+enum NodeUpdateType {
+	REGISTER = 0;
+	UNREGISTER = 1;
+	METADATA = 2;
+}
+
+// Contains the set of immutable attributes for the node.
+message NodeAttributes {
+	// Service is the type of service running on the node.
+	string Service = 1;
+
+	// Locality is the location of the node in the cluster.
+	string Locality = 2;
+
+	// Created is the time the node was created in UNIX milliseconds.
+	int64 Created = 3;
+
+	// Revision identifies the version of the service running on the node.
+	string Revision = 4;
+}
+
+message VersionedValue {
+	string Value = 1;
+	uint64 Version = 2;
+}
+
+// Describes an update to a nodes entry in the registry.
+message NodeUpdate {
+	// ID of the node being updated.
+	string NodeID = 1;
+
+	// Type of update to the node.
+	NodeUpdateType UpdateType = 2;
+
+	// Version of the node after the update. Note this is only set by the
+	// Fuddle server, not the client.
+	uint64 Version = 3;
+
+	// Set of immutable attributes for the node. The attributes are only set
+	// for REGISTER updates since they are immutable.
+	NodeAttributes Attributes = 4;
+
+	// Application defined node metadata. The metadata entries versions will
+	// only be set by the Fuddle server, not the client.
+	map<string, VersionedValue> Metadata = 5;
+}
+
+message Heartbeat {
+	// Timestamp is set by the client and echoed back by the server.
+	int64 Timestamp = 1;
+}
+
+enum ErrorStatus {
+	// Indicates a client attempted to update or sync with the registry, though
+	// the registry doesn't think it is registered.
+	NOT_REGISTERED = 0;
+}
+
+message Error {
+	// Error status contains an enum describing the error.
+	ErrorStatus ErrorStatus = 1;
+}
