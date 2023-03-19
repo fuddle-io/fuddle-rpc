@@ -1,3 +1,7 @@
+<p align="center">
+  <img src='assets/images/logo.png?raw=true' width='60%'>
+</p>
+
 # Fuddle RPC
 
 [Fuddle](https://github.com/fuddle-io/fuddle) is a service registry that can be
