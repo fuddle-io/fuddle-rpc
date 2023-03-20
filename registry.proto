@@ -82,9 +82,12 @@ enum ErrorStatus {
 	// Indicates a client attempted to update or sync with the registry, though
 	// the registry doesn't think it is registered.
 	NOT_REGISTERED = 0;
+	// Indicates a protocol error.
+	PROTOCOL = 1;
 }
 
 message Error {
 	// Error status contains an enum describing the error.
-	ErrorStatus ErrorStatus = 1;
+	ErrorStatus Status = 1;
+	string Message = 2;
 }
