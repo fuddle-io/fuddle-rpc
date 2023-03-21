@@ -6,6 +6,8 @@ package registry;
 
 service Registry {
 	rpc Register(stream Message) returns (stream Message) {}
+	rpc Nodes(NodesRequest) returns (NodesRespose) {}
+	rpc Node(NodeRequest) returns (NodeResponse) {}
 }
 
 enum MessageType {
@@ -20,10 +22,10 @@ enum MessageType {
 }
 
 message Message {
-	MessageType MessageType = 1;
-	optional NodeUpdate NodeUpdate = 2;
-	optional Heartbeat Heartbeat = 3;
-	optional Error Error = 4;
+	MessageType message_type = 1;
+	optional NodeUpdate node_update = 2;
+	optional Heartbeat heartbeat = 3;
+	optional Error error = 4;
 }
 
 enum NodeUpdateType {
@@ -35,47 +37,47 @@ enum NodeUpdateType {
 // Contains the set of immutable attributes for the node.
 message NodeAttributes {
 	// Service is the type of service running on the node.
-	string Service = 1;
+	string service = 1;
 
 	// Locality is the location of the node in the cluster.
-	string Locality = 2;
+	string locality = 2;
 
 	// Created is the time the node was created in UNIX milliseconds.
-	int64 Created = 3;
+	int64 created = 3;
 
 	// Revision identifies the version of the service running on the node.
-	string Revision = 4;
+	string revision = 4;
 }
 
 message VersionedValue {
-	string Value = 1;
-	uint64 Version = 2;
+	string value = 1;
+	uint64 version = 2;
 }
 
 // Describes an update to a nodes entry in the registry.
 message NodeUpdate {
 	// ID of the node being updated.
-	string NodeID = 1;
+	string ndoe_id = 1;
 
 	// Type of update to the node.
-	NodeUpdateType UpdateType = 2;
+	NodeUpdateType update_type = 2;
 
 	// Version of the node after the update. Note this is only set by the
 	// Fuddle server, not the client.
-	uint64 Version = 3;
+	uint64 version = 3;
 
 	// Set of immutable attributes for the node. The attributes are only set
 	// for REGISTER updates since they are immutable.
-	NodeAttributes Attributes = 4;
+	NodeAttributes attributes = 4;
 
 	// Application defined node metadata. The metadata entries versions will
 	// only be set by the Fuddle server, not the client.
-	map<string, VersionedValue> Metadata = 5;
+	map<string, VersionedValue> metadata = 5;
 }
 
 message Heartbeat {
 	// Timestamp is set by the client and echoed back by the server.
-	int64 Timestamp = 1;
+	int64 timestamp = 1;
 }
 
 enum ErrorStatus {
@@ -88,6 +90,22 @@ enum ErrorStatus {
 
 message Error {
 	// Error status contains an enum describing the error.
-	ErrorStatus Status = 1;
-	string Message = 2;
+	ErrorStatus status = 1;
+	string description = 2;
+}
+
+message NodesRequest {
+	bool include_metadata = 1;
+}
+
+message NodesRespose {
+	repeated NodeUpdate nodes = 1;
+}
+
+message NodeRequest {
+	string node_id = 1;
+}
+
+message NodeResponse {
+	NodeUpdate node = 1;
 }
