@@ -6,6 +6,8 @@ package registry;
 
 service Registry {
 	rpc Register(stream Message) returns (stream Message) {}
+	rpc Nodes(NodesRequest) returns (NodesRespose) {}
+	rpc Node(NodeRequest) returns (NodeResponse) {}
 }
 
 enum MessageType {
@@ -90,4 +92,20 @@ message Error {
 	// Error status contains an enum describing the error.
 	ErrorStatus Status = 1;
 	string Message = 2;
+}
+
+message NodesRequest {
+	bool include_metadata = 1;
+}
+
+message NodesRespose {
+	repeated NodeUpdate nodes = 1;
+}
+
+message NodeRequest {
+	string node_id = 1;
+}
+
+message NodeResponse {
+	NodeUpdate node = 1;
 }
