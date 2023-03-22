@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
 	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
-	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesRespose, error)
+	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
 	Node(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 }
 
@@ -62,8 +62,8 @@ func (x *registryRegisterClient) Recv() (*Message, error) {
 	return m, nil
 }
 
-func (c *registryClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesRespose, error) {
-	out := new(NodesRespose)
+func (c *registryClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
+	out := new(NodesResponse)
 	err := c.cc.Invoke(ctx, "/registry.Registry/Nodes", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (c *registryClient) Node(ctx context.Context, in *NodeRequest, opts ...grpc
 // for forward compatibility
 type RegistryServer interface {
 	Register(Registry_RegisterServer) error
-	Nodes(context.Context, *NodesRequest) (*NodesRespose, error)
+	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
 	Node(context.Context, *NodeRequest) (*NodeResponse, error)
 	mustEmbedUnimplementedRegistryServer()
 }
@@ -97,7 +97,7 @@ type UnimplementedRegistryServer struct {
 func (UnimplementedRegistryServer) Register(Registry_RegisterServer) error {
 	return status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
-func (UnimplementedRegistryServer) Nodes(context.Context, *NodesRequest) (*NodesRespose, error) {
+func (UnimplementedRegistryServer) Nodes(context.Context, *NodesRequest) (*NodesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Nodes not implemented")
 }
 func (UnimplementedRegistryServer) Node(context.Context, *NodeRequest) (*NodeResponse, error) {

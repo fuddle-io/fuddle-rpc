@@ -6,7 +6,7 @@ package registry;
 
 service Registry {
 	rpc Register(stream Message) returns (stream Message) {}
-	rpc Nodes(NodesRequest) returns (NodesRespose) {}
+	rpc Nodes(NodesRequest) returns (NodesResponse) {}
 	rpc Node(NodeRequest) returns (NodeResponse) {}
 }
 
@@ -54,10 +54,26 @@ message VersionedValue {
 	uint64 version = 2;
 }
 
+message Node {
+	// ID of the node.
+	string id = 1;
+
+	// Version of the node. Note this is only set by the Fuddle server, not the
+	// client.
+	uint64 version = 3;
+
+	// Set of immutable attributes for the node.
+	NodeAttributes attributes = 4;
+
+	// Application defined node metadata. The metadata entries versions will
+	// only be set by the Fuddle server, not the client.
+	map<string, VersionedValue> metadata = 5;
+}
+
 // Describes an update to a nodes entry in the registry.
 message NodeUpdate {
 	// ID of the node being updated.
-	string ndoe_id = 1;
+	string node_id = 1;
 
 	// Type of update to the node.
 	NodeUpdateType update_type = 2;
@@ -86,6 +102,8 @@ enum ErrorStatus {
 	NOT_REGISTERED = 0;
 	// Indicates a protocol error.
 	PROTOCOL = 1;
+	// Resuorce not found.
+	NOT_FOUND = 2;
 }
 
 message Error {
@@ -98,8 +116,9 @@ message NodesRequest {
 	bool include_metadata = 1;
 }
 
-message NodesRespose {
-	repeated NodeUpdate nodes = 1;
+message NodesResponse {
+	repeated Node nodes = 1;
+	Error error = 2;
 }
 
 message NodeRequest {
@@ -107,5 +126,6 @@ message NodeRequest {
 }
 
 message NodeResponse {
-	NodeUpdate node = 1;
+	Node node = 1;
+	Error error = 2;
 }
