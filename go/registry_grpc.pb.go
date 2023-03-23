@@ -18,8 +18,19 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
+	// DEPRICATED
 	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
+	// RegisterV2 registers a node into the registry.
+	RegisterV2(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	// Unregister unregisters a node from the registry.
+	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
+	// UpdateNode updates the state of a node in the registry.
+	UpdateNode(ctx context.Context, in *UpdateNodeRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
+	// Updates streams updates to the registry.
+	Updates(ctx context.Context, in *UpdatesRequest, opts ...grpc.CallOption) (Registry_UpdatesClient, error)
+	// Nodes returns the set of nodes in the cluster.
 	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
+	// Node returns the node with the requested ID.
 	Node(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
 }
 
@@ -62,6 +73,65 @@ func (x *registryRegisterClient) Recv() (*Message, error) {
 	return m, nil
 }
 
+func (c *registryClient) RegisterV2(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
+	out := new(RegisterResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/RegisterV2", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error) {
+	out := new(UnregisterResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/Unregister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) UpdateNode(ctx context.Context, in *UpdateNodeRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
+	out := new(UpdateNodeResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/UpdateNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Updates(ctx context.Context, in *UpdatesRequest, opts ...grpc.CallOption) (Registry_UpdatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Updates", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &registryUpdatesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Registry_UpdatesClient interface {
+	Recv() (*NodeUpdate, error)
+	grpc.ClientStream
+}
+
+type registryUpdatesClient struct {
+	grpc.ClientStream
+}
+
+func (x *registryUpdatesClient) Recv() (*NodeUpdate, error) {
+	m := new(NodeUpdate)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *registryClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
 	out := new(NodesResponse)
 	err := c.cc.Invoke(ctx, "/registry.Registry/Nodes", in, out, opts...)
@@ -84,8 +154,19 @@ func (c *registryClient) Node(ctx context.Context, in *NodeRequest, opts ...grpc
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
+	// DEPRICATED
 	Register(Registry_RegisterServer) error
+	// RegisterV2 registers a node into the registry.
+	RegisterV2(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	// Unregister unregisters a node from the registry.
+	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
+	// UpdateNode updates the state of a node in the registry.
+	UpdateNode(context.Context, *UpdateNodeRequest) (*UpdateNodeResponse, error)
+	// Updates streams updates to the registry.
+	Updates(*UpdatesRequest, Registry_UpdatesServer) error
+	// Nodes returns the set of nodes in the cluster.
 	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
+	// Node returns the node with the requested ID.
 	Node(context.Context, *NodeRequest) (*NodeResponse, error)
 	mustEmbedUnimplementedRegistryServer()
 }
@@ -96,6 +177,18 @@ type UnimplementedRegistryServer struct {
 
 func (UnimplementedRegistryServer) Register(Registry_RegisterServer) error {
 	return status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedRegistryServer) RegisterV2(context.Context, *RegisterRequest) (*RegisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterV2 not implemented")
+}
+func (UnimplementedRegistryServer) Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Unregister not implemented")
+}
+func (UnimplementedRegistryServer) UpdateNode(context.Context, *UpdateNodeRequest) (*UpdateNodeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateNode not implemented")
+}
+func (UnimplementedRegistryServer) Updates(*UpdatesRequest, Registry_UpdatesServer) error {
+	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
 }
 func (UnimplementedRegistryServer) Nodes(context.Context, *NodesRequest) (*NodesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Nodes not implemented")
@@ -142,6 +235,81 @@ func (x *registryRegisterServer) Recv() (*Message, error) {
 	return m, nil
 }
 
+func _Registry_RegisterV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).RegisterV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/RegisterV2",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).RegisterV2(ctx, req.(*RegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Unregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnregisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Unregister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/Unregister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Unregister(ctx, req.(*UnregisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_UpdateNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateNodeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).UpdateNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/UpdateNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).UpdateNode(ctx, req.(*UpdateNodeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(UpdatesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RegistryServer).Updates(m, &registryUpdatesServer{stream})
+}
+
+type Registry_UpdatesServer interface {
+	Send(*NodeUpdate) error
+	grpc.ServerStream
+}
+
+type registryUpdatesServer struct {
+	grpc.ServerStream
+}
+
+func (x *registryUpdatesServer) Send(m *NodeUpdate) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _Registry_Nodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NodesRequest)
 	if err := dec(in); err != nil {
@@ -186,6 +354,18 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RegistryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "RegisterV2",
+			Handler:    _Registry_RegisterV2_Handler,
+		},
+		{
+			MethodName: "Unregister",
+			Handler:    _Registry_Unregister_Handler,
+		},
+		{
+			MethodName: "UpdateNode",
+			Handler:    _Registry_UpdateNode_Handler,
+		},
+		{
 			MethodName: "Nodes",
 			Handler:    _Registry_Nodes_Handler,
 		},
@@ -200,6 +380,11 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _Registry_Register_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "Updates",
+			Handler:       _Registry_Updates_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "registry.proto",

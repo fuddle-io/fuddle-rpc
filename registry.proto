@@ -5,11 +5,29 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 package registry;
 
 service Registry {
+	// DEPRICATED
 	rpc Register(stream Message) returns (stream Message) {}
+
+	// RegisterV2 registers a node into the registry.
+	rpc RegisterV2(RegisterRequest) returns (RegisterResponse) {}
+
+	// Unregister unregisters a node from the registry.
+	rpc Unregister(UnregisterRequest) returns (UnregisterResponse) {}
+
+	// UpdateNode updates the state of a node in the registry.
+	rpc UpdateNode(UpdateNodeRequest) returns (UpdateNodeResponse) {}
+
+	// Updates streams updates to the registry.
+	rpc Updates(UpdatesRequest) returns (stream NodeUpdate) {}
+
+	// Nodes returns the set of nodes in the cluster.
 	rpc Nodes(NodesRequest) returns (NodesResponse) {}
+
+	// Node returns the node with the requested ID.
 	rpc Node(NodeRequest) returns (NodeResponse) {}
 }
 
+// DEPRICATED
 enum MessageType {
 	// Message describes an update to a nodes entry in the registry.
 	NODE_UPDATE = 0;
@@ -21,6 +39,7 @@ enum MessageType {
 	ERROR = 2;
 }
 
+// DEPRICATED
 message Message {
 	MessageType message_type = 1;
 	optional NodeUpdate node_update = 2;
@@ -60,14 +79,14 @@ message Node {
 
 	// Version of the node. Note this is only set by the Fuddle server, not the
 	// client.
-	uint64 version = 3;
+	uint64 version = 2;
 
 	// Set of immutable attributes for the node.
-	NodeAttributes attributes = 4;
+	NodeAttributes attributes = 3;
 
 	// Application defined node metadata. The metadata entries versions will
 	// only be set by the Fuddle server, not the client.
-	map<string, VersionedValue> metadata = 5;
+	map<string, VersionedValue> metadata = 4;
 }
 
 // Describes an update to a nodes entry in the registry.
@@ -97,19 +116,50 @@ message Heartbeat {
 }
 
 enum ErrorStatus {
-	// Indicates a client attempted to update or sync with the registry, though
-	// the registry doesn't think it is registered.
+	// Attempting to update a node that is not registered.
 	NOT_REGISTERED = 0;
-	// Indicates a protocol error.
-	PROTOCOL = 1;
+	// Attempting to register a node that is already in the registry.
+	ALREADY_REGISTERED = 1;
+	// Protocol error occured.
+	PROTOCOL = 2;
 	// Resuorce not found.
-	NOT_FOUND = 2;
+	NOT_FOUND = 3;
+	// Unknown error.
+	UNKNOWN = 4;
 }
 
 message Error {
 	// Error status contains an enum describing the error.
 	ErrorStatus status = 1;
 	string description = 2;
+}
+
+message RegisterRequest {
+	Node node = 1;
+}
+
+message RegisterResponse {
+	Error error = 1;
+}
+
+message UnregisterRequest {
+	string node_id = 1;
+}
+
+message UnregisterResponse {
+	Error error = 1;
+}
+
+message UpdateNodeRequest {
+	string node_id = 1;
+	map<string, string> metadata = 2;
+}
+
+message UpdateNodeResponse {
+	Error error = 1;
+}
+
+message UpdatesRequest {
 }
 
 message NodesRequest {
