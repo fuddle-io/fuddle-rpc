@@ -5,10 +5,10 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 package registry;
 
 service Registry {
-	// DEPRICATED
-	rpc Register(stream Message) returns (stream Message) {}
+	// Register registers a node into the registry.
+	rpc Register(RegisterRequest) returns (RegisterResponse) {}
 
-	// RegisterV2 registers a node into the registry.
+	// DEPRICATED
 	rpc RegisterV2(RegisterRequest) returns (RegisterResponse) {}
 
 	// Unregister unregisters a node from the registry.
