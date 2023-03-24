@@ -20,8 +20,6 @@ const _ = grpc.SupportPackageIsVersion7
 type RegistryClient interface {
 	// Register registers a node into the registry.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-	// DEPRICATED
-	RegisterV2(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	// Unregister unregisters a node from the registry.
 	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
 	// UpdateNode updates the state of a node in the registry.
@@ -45,15 +43,6 @@ func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
 func (c *registryClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
 	out := new(RegisterResponse)
 	err := c.cc.Invoke(ctx, "/registry.Registry/Register", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *registryClient) RegisterV2(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
-	out := new(RegisterResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/RegisterV2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,8 +123,6 @@ func (c *registryClient) Node(ctx context.Context, in *NodeRequest, opts ...grpc
 type RegistryServer interface {
 	// Register registers a node into the registry.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
-	// DEPRICATED
-	RegisterV2(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	// Unregister unregisters a node from the registry.
 	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
 	// UpdateNode updates the state of a node in the registry.
@@ -155,9 +142,6 @@ type UnimplementedRegistryServer struct {
 
 func (UnimplementedRegistryServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
-}
-func (UnimplementedRegistryServer) RegisterV2(context.Context, *RegisterRequest) (*RegisterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterV2 not implemented")
 }
 func (UnimplementedRegistryServer) Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unregister not implemented")
@@ -201,24 +185,6 @@ func _Registry_Register_Handler(srv interface{}, ctx context.Context, dec func(i
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).Register(ctx, req.(*RegisterRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Registry_RegisterV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RegistryServer).RegisterV2(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/registry.Registry/RegisterV2",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).RegisterV2(ctx, req.(*RegisterRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -326,10 +292,6 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _Registry_Register_Handler,
-		},
-		{
-			MethodName: "RegisterV2",
-			Handler:    _Registry_RegisterV2_Handler,
 		},
 		{
 			MethodName: "Unregister",
