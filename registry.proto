@@ -8,9 +8,6 @@ service Registry {
 	// Register registers a node into the registry.
 	rpc Register(RegisterRequest) returns (RegisterResponse) {}
 
-	// DEPRICATED
-	rpc RegisterV2(RegisterRequest) returns (RegisterResponse) {}
-
 	// Unregister unregisters a node from the registry.
 	rpc Unregister(UnregisterRequest) returns (UnregisterResponse) {}
 
@@ -25,26 +22,6 @@ service Registry {
 
 	// Node returns the node with the requested ID.
 	rpc Node(NodeRequest) returns (NodeResponse) {}
-}
-
-// DEPRICATED
-enum MessageType {
-	// Message describes an update to a nodes entry in the registry.
-	NODE_UPDATE = 0;
-
-	// Messages contains a heartbeat, used to check for liveness.
-	HEARTBEAT = 1;
-
-	// Messages contains an error.
-	ERROR = 2;
-}
-
-// DEPRICATED
-message Message {
-	MessageType message_type = 1;
-	optional NodeUpdate node_update = 2;
-	optional Heartbeat heartbeat = 3;
-	optional Error error = 4;
 }
 
 enum NodeUpdateType {
