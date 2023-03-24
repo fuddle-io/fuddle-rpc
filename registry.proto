@@ -22,6 +22,8 @@ service Registry {
 
 	// Node returns the node with the requested ID.
 	rpc Node(NodeRequest) returns (NodeResponse) {}
+
+	rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
 }
 
 enum NodeUpdateType {
@@ -87,11 +89,6 @@ message NodeUpdate {
 	map<string, VersionedValue> metadata = 5;
 }
 
-message Heartbeat {
-	// Timestamp is set by the client and echoed back by the server.
-	int64 timestamp = 1;
-}
-
 enum ErrorStatus {
 	// Attempting to update a node that is not registered.
 	NOT_REGISTERED = 0;
@@ -155,4 +152,19 @@ message NodeRequest {
 message NodeResponse {
 	Node node = 1;
 	Error error = 2;
+}
+
+message Heartbeat {
+	// Timestamp is set by the client and echoed back by the server.
+	int64 timestamp = 1;
+}
+
+message HeartbeatRequest {
+	Heartbeat heartbeat = 1;
+	repeated string nodes = 2;
+}
+
+message HeartbeatResponse {
+	Heartbeat heartbeat = 1;
+	map<string, Error> errors = 2;
 }
