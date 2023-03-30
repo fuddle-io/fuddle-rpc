@@ -5,166 +5,145 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 package registry;
 
 service Registry {
-	// Register registers a node into the registry.
-	rpc Register(RegisterRequest) returns (RegisterResponse) {}
+	// Register a member into the registry.
+	rpc RegisterMember(RegisterMemberRequest) returns (RegisterMemberResponse) {}
 
-	// Unregister unregisters a node from the registry.
-	rpc Unregister(UnregisterRequest) returns (UnregisterResponse) {}
+	// Unregister a member from the registry.
+	rpc UnregisterMember(UnregisterMemberRequest) returns (UnregisterMemberResponse) {}
 
-	// UpdateNode updates the state of a node in the registry.
-	rpc UpdateNode(UpdateNodeRequest) returns (UpdateNodeResponse) {}
+	// Update a members metadata.
+	rpc UpdateMemberMetadata(UpdateMemberMetadataRequest) returns (UpdateMemberMetadataResponse) {}
 
-	// Updates streams updates to the registry.
-	rpc Updates(UpdatesRequest) returns (stream NodeUpdate) {}
+	// Subscribe streams update to the set of members in the registry.
+	rpc Subscribe(SubscribeRequest) returns (stream MemberUpdate) {}
 
-	// Nodes returns the set of nodes in the cluster.
-	rpc Nodes(NodesRequest) returns (NodesResponse) {}
-
-	// Node returns the node with the requested ID.
-	rpc Node(NodeRequest) returns (NodeResponse) {}
-
+	// Heartbeat is sent by the clients so the server knows the client is still
+	// alive.
 	rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
-}
 
-enum NodeUpdateType {
-	REGISTER = 0;
-	UNREGISTER = 1;
-	METADATA = 2;
-}
+	// Member returns the requested node from the registry.
+	rpc Member(MemberRequest) returns (MemberResponse) {}
 
-// Contains the set of immutable attributes for the node.
-message NodeAttributes {
-	// Service is the type of service running on the node.
-	string service = 1;
-
-	// Locality is the location of the node in the cluster.
-	string locality = 2;
-
-	// Created is the time the node was created in UNIX milliseconds.
-	int64 created = 3;
-
-	// Revision identifies the version of the service running on the node.
-	string revision = 4;
-}
-
-message VersionedValue {
-	string value = 1;
-	uint64 version = 2;
-}
-
-message Node {
-	// ID of the node.
-	string id = 1;
-
-	// Version of the node. Note this is only set by the Fuddle server, not the
-	// client.
-	uint64 version = 2;
-
-	// Set of immutable attributes for the node.
-	NodeAttributes attributes = 3;
-
-	// Application defined node metadata. The metadata entries versions will
-	// only be set by the Fuddle server, not the client.
-	map<string, VersionedValue> metadata = 4;
-}
-
-// Describes an update to a nodes entry in the registry.
-message NodeUpdate {
-	// ID of the node being updated.
-	string node_id = 1;
-
-	// Type of update to the node.
-	NodeUpdateType update_type = 2;
-
-	// Version of the node after the update. Note this is only set by the
-	// Fuddle server, not the client.
-	uint64 version = 3;
-
-	// Set of immutable attributes for the node. The attributes are only set
-	// for REGISTER updates since they are immutable.
-	NodeAttributes attributes = 4;
-
-	// Application defined node metadata. The metadata entries versions will
-	// only be set by the Fuddle server, not the client.
-	map<string, VersionedValue> metadata = 5;
+	// Members returns the set of members in the registry.
+	rpc Members(MembersRequest) returns (MembersResponse) {}
 }
 
 enum ErrorStatus {
 	// Attempting to update a node that is not registered.
 	NOT_REGISTERED = 0;
+
 	// Attempting to register a node that is already in the registry.
 	ALREADY_REGISTERED = 1;
-	// Protocol error occured.
-	PROTOCOL = 2;
+
+	INVALID_MEMBER = 2;
+
 	// Resuorce not found.
 	NOT_FOUND = 3;
+
 	// Unknown error.
 	UNKNOWN = 4;
 }
 
 message Error {
-	// Error status contains an enum describing the error.
 	ErrorStatus status = 1;
+
 	string description = 2;
 }
 
-message RegisterRequest {
-	Node node = 1;
+enum MemberStatus {
+	UP = 0;
+	DOWN = 1;
 }
 
-message RegisterResponse {
-	Error error = 1;
+message Member {
+	// ID of the node.
+	string id = 1;
+
+	string client_id = 2;
+
+	MemberStatus status = 3;
+
+	uint64 version = 4;
+
+	// Service is the type of service running on the node.
+	string service = 5;
+
+	// ity is the location of the node in the cluster.
+	string locality = 6;
+
+	// Created is the time the node was created in UNIX milliseconds.
+	int64 created = 7;
+
+	// Revision identifies the version of the service running on the node.
+	string revision = 8;
+
+	map<string, string> metadata = 9;
 }
 
-message UnregisterRequest {
-	string node_id = 1;
+message RegisterMemberRequest {
+	Member member = 1;
 }
 
-message UnregisterResponse {
-	Error error = 1;
+message RegisterMemberResponse {
+	optional Error error = 1;
 }
 
-message UpdateNodeRequest {
-	string node_id = 1;
+message UnregisterMemberRequest {
+	string id = 1;
+}
+
+message UnregisterMemberResponse {
+	optional Error error = 1;
+}
+
+message UpdateMemberMetadataRequest {
+	string id = 1;
+
 	map<string, string> metadata = 2;
 }
 
-message UpdateNodeResponse {
-	Error error = 1;
+message UpdateMemberMetadataResponse {
+	optional Error error = 1;
 }
 
-message UpdatesRequest {
+message SubscribeRequest {
+	map<string, uint64> versions = 1;
 }
 
-message NodesRequest {
-	bool include_metadata = 1;
+enum MemberUpdateType {
+	REGISTER = 0;
+	UNREGISTER = 1;
+	STATE = 2;
 }
 
-message NodesResponse {
-	repeated Node nodes = 1;
-	Error error = 2;
-}
+message MemberUpdate {
+	string id = 1;
 
-message NodeRequest {
-	string node_id = 1;
-}
+	MemberUpdateType update_type = 2;
 
-message NodeResponse {
-	Node node = 1;
-	Error error = 2;
-}
-
-message Heartbeat {
-	// Timestamp is set by the client and echoed back by the server.
-	int64 timestamp = 1;
+	Member member = 3;
 }
 
 message HeartbeatRequest {
-	Heartbeat heartbeat = 1;
-	repeated string nodes = 2;
+	string client_id = 1;
 }
 
 message HeartbeatResponse {
-	Heartbeat heartbeat = 1;
-	map<string, Error> errors = 2;
+}
+
+message MembersRequest {
+}
+
+message MembersResponse {
+	repeated Member members = 1;
+	optional Error error = 2;
+}
+
+message MemberRequest {
+	string id = 1;
+}
+
+message MemberResponse {
+	Member member = 1;
+	optional Error error = 2;
 }

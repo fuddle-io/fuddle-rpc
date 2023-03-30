@@ -18,19 +18,21 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
-	// Register registers a node into the registry.
-	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-	// Unregister unregisters a node from the registry.
-	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
-	// UpdateNode updates the state of a node in the registry.
-	UpdateNode(ctx context.Context, in *UpdateNodeRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error)
-	// Updates streams updates to the registry.
-	Updates(ctx context.Context, in *UpdatesRequest, opts ...grpc.CallOption) (Registry_UpdatesClient, error)
-	// Nodes returns the set of nodes in the cluster.
-	Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error)
-	// Node returns the node with the requested ID.
-	Node(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error)
+	// Register a member into the registry.
+	RegisterMember(ctx context.Context, in *RegisterMemberRequest, opts ...grpc.CallOption) (*RegisterMemberResponse, error)
+	// Unregister a member from the registry.
+	UnregisterMember(ctx context.Context, in *UnregisterMemberRequest, opts ...grpc.CallOption) (*UnregisterMemberResponse, error)
+	// Update a members metadata.
+	UpdateMemberMetadata(ctx context.Context, in *UpdateMemberMetadataRequest, opts ...grpc.CallOption) (*UpdateMemberMetadataResponse, error)
+	// Subscribe streams update to the set of members in the registry.
+	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error)
+	// Heartbeat is sent by the clients so the server knows the client is still
+	// alive.
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// Member returns the requested node from the registry.
+	Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error)
+	// Members returns the set of members in the registry.
+	Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error)
 }
 
 type registryClient struct {
@@ -41,39 +43,39 @@ func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
 	return &registryClient{cc}
 }
 
-func (c *registryClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
-	out := new(RegisterResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/Register", in, out, opts...)
+func (c *registryClient) RegisterMember(ctx context.Context, in *RegisterMemberRequest, opts ...grpc.CallOption) (*RegisterMemberResponse, error) {
+	out := new(RegisterMemberResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/RegisterMember", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *registryClient) Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error) {
-	out := new(UnregisterResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/Unregister", in, out, opts...)
+func (c *registryClient) UnregisterMember(ctx context.Context, in *UnregisterMemberRequest, opts ...grpc.CallOption) (*UnregisterMemberResponse, error) {
+	out := new(UnregisterMemberResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/UnregisterMember", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *registryClient) UpdateNode(ctx context.Context, in *UpdateNodeRequest, opts ...grpc.CallOption) (*UpdateNodeResponse, error) {
-	out := new(UpdateNodeResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/UpdateNode", in, out, opts...)
+func (c *registryClient) UpdateMemberMetadata(ctx context.Context, in *UpdateMemberMetadataRequest, opts ...grpc.CallOption) (*UpdateMemberMetadataResponse, error) {
+	out := new(UpdateMemberMetadataResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/UpdateMemberMetadata", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *registryClient) Updates(ctx context.Context, in *UpdatesRequest, opts ...grpc.CallOption) (Registry_UpdatesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Updates", opts...)
+func (c *registryClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &registryUpdatesClient{stream}
+	x := &registrySubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -83,39 +85,21 @@ func (c *registryClient) Updates(ctx context.Context, in *UpdatesRequest, opts .
 	return x, nil
 }
 
-type Registry_UpdatesClient interface {
-	Recv() (*NodeUpdate, error)
+type Registry_SubscribeClient interface {
+	Recv() (*MemberUpdate, error)
 	grpc.ClientStream
 }
 
-type registryUpdatesClient struct {
+type registrySubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *registryUpdatesClient) Recv() (*NodeUpdate, error) {
-	m := new(NodeUpdate)
+func (x *registrySubscribeClient) Recv() (*MemberUpdate, error) {
+	m := new(MemberUpdate)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
-}
-
-func (c *registryClient) Nodes(ctx context.Context, in *NodesRequest, opts ...grpc.CallOption) (*NodesResponse, error) {
-	out := new(NodesResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/Nodes", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *registryClient) Node(ctx context.Context, in *NodeRequest, opts ...grpc.CallOption) (*NodeResponse, error) {
-	out := new(NodeResponse)
-	err := c.cc.Invoke(ctx, "/registry.Registry/Node", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *registryClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
@@ -127,23 +111,43 @@ func (c *registryClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, op
 	return out, nil
 }
 
+func (c *registryClient) Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error) {
+	out := new(MemberResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/Member", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error) {
+	out := new(MembersResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/Members", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RegistryServer is the server API for Registry service.
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
-	// Register registers a node into the registry.
-	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
-	// Unregister unregisters a node from the registry.
-	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
-	// UpdateNode updates the state of a node in the registry.
-	UpdateNode(context.Context, *UpdateNodeRequest) (*UpdateNodeResponse, error)
-	// Updates streams updates to the registry.
-	Updates(*UpdatesRequest, Registry_UpdatesServer) error
-	// Nodes returns the set of nodes in the cluster.
-	Nodes(context.Context, *NodesRequest) (*NodesResponse, error)
-	// Node returns the node with the requested ID.
-	Node(context.Context, *NodeRequest) (*NodeResponse, error)
+	// Register a member into the registry.
+	RegisterMember(context.Context, *RegisterMemberRequest) (*RegisterMemberResponse, error)
+	// Unregister a member from the registry.
+	UnregisterMember(context.Context, *UnregisterMemberRequest) (*UnregisterMemberResponse, error)
+	// Update a members metadata.
+	UpdateMemberMetadata(context.Context, *UpdateMemberMetadataRequest) (*UpdateMemberMetadataResponse, error)
+	// Subscribe streams update to the set of members in the registry.
+	Subscribe(*SubscribeRequest, Registry_SubscribeServer) error
+	// Heartbeat is sent by the clients so the server knows the client is still
+	// alive.
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	// Member returns the requested node from the registry.
+	Member(context.Context, *MemberRequest) (*MemberResponse, error)
+	// Members returns the set of members in the registry.
+	Members(context.Context, *MembersRequest) (*MembersResponse, error)
 	mustEmbedUnimplementedRegistryServer()
 }
 
@@ -151,26 +155,26 @@ type RegistryServer interface {
 type UnimplementedRegistryServer struct {
 }
 
-func (UnimplementedRegistryServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+func (UnimplementedRegistryServer) RegisterMember(context.Context, *RegisterMemberRequest) (*RegisterMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterMember not implemented")
 }
-func (UnimplementedRegistryServer) Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Unregister not implemented")
+func (UnimplementedRegistryServer) UnregisterMember(context.Context, *UnregisterMemberRequest) (*UnregisterMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnregisterMember not implemented")
 }
-func (UnimplementedRegistryServer) UpdateNode(context.Context, *UpdateNodeRequest) (*UpdateNodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateNode not implemented")
+func (UnimplementedRegistryServer) UpdateMemberMetadata(context.Context, *UpdateMemberMetadataRequest) (*UpdateMemberMetadataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateMemberMetadata not implemented")
 }
-func (UnimplementedRegistryServer) Updates(*UpdatesRequest, Registry_UpdatesServer) error {
-	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
-}
-func (UnimplementedRegistryServer) Nodes(context.Context, *NodesRequest) (*NodesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Nodes not implemented")
-}
-func (UnimplementedRegistryServer) Node(context.Context, *NodeRequest) (*NodeResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Node not implemented")
+func (UnimplementedRegistryServer) Subscribe(*SubscribeRequest, Registry_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedRegistryServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedRegistryServer) Member(context.Context, *MemberRequest) (*MemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Member not implemented")
+}
+func (UnimplementedRegistryServer) Members(context.Context, *MembersRequest) (*MembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Members not implemented")
 }
 func (UnimplementedRegistryServer) mustEmbedUnimplementedRegistryServer() {}
 
@@ -185,115 +189,79 @@ func RegisterRegistryServer(s grpc.ServiceRegistrar, srv RegistryServer) {
 	s.RegisterService(&Registry_ServiceDesc, srv)
 }
 
-func _Registry_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterRequest)
+func _Registry_RegisterMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterMemberRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RegistryServer).Register(ctx, in)
+		return srv.(RegistryServer).RegisterMember(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/registry.Registry/Register",
+		FullMethod: "/registry.Registry/RegisterMember",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).Register(ctx, req.(*RegisterRequest))
+		return srv.(RegistryServer).RegisterMember(ctx, req.(*RegisterMemberRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Registry_Unregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UnregisterRequest)
+func _Registry_UnregisterMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnregisterMemberRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RegistryServer).Unregister(ctx, in)
+		return srv.(RegistryServer).UnregisterMember(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/registry.Registry/Unregister",
+		FullMethod: "/registry.Registry/UnregisterMember",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).Unregister(ctx, req.(*UnregisterRequest))
+		return srv.(RegistryServer).UnregisterMember(ctx, req.(*UnregisterMemberRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Registry_UpdateNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateNodeRequest)
+func _Registry_UpdateMemberMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMemberMetadataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RegistryServer).UpdateNode(ctx, in)
+		return srv.(RegistryServer).UpdateMemberMetadata(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/registry.Registry/UpdateNode",
+		FullMethod: "/registry.Registry/UpdateMemberMetadata",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).UpdateNode(ctx, req.(*UpdateNodeRequest))
+		return srv.(RegistryServer).UpdateMemberMetadata(ctx, req.(*UpdateMemberMetadataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Registry_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(UpdatesRequest)
+func _Registry_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RegistryServer).Updates(m, &registryUpdatesServer{stream})
+	return srv.(RegistryServer).Subscribe(m, &registrySubscribeServer{stream})
 }
 
-type Registry_UpdatesServer interface {
-	Send(*NodeUpdate) error
+type Registry_SubscribeServer interface {
+	Send(*MemberUpdate) error
 	grpc.ServerStream
 }
 
-type registryUpdatesServer struct {
+type registrySubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *registryUpdatesServer) Send(m *NodeUpdate) error {
+func (x *registrySubscribeServer) Send(m *MemberUpdate) error {
 	return x.ServerStream.SendMsg(m)
-}
-
-func _Registry_Nodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RegistryServer).Nodes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/registry.Registry/Nodes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).Nodes(ctx, req.(*NodesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Registry_Node_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RegistryServer).Node(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/registry.Registry/Node",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RegistryServer).Node(ctx, req.(*NodeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Registry_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -314,6 +282,42 @@ func _Registry_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Registry_Member_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Member(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/Member",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Member(ctx, req.(*MemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Members_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Members(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/Members",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Members(ctx, req.(*MembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Registry_ServiceDesc is the grpc.ServiceDesc for Registry service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -322,34 +326,34 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RegistryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Register",
-			Handler:    _Registry_Register_Handler,
+			MethodName: "RegisterMember",
+			Handler:    _Registry_RegisterMember_Handler,
 		},
 		{
-			MethodName: "Unregister",
-			Handler:    _Registry_Unregister_Handler,
+			MethodName: "UnregisterMember",
+			Handler:    _Registry_UnregisterMember_Handler,
 		},
 		{
-			MethodName: "UpdateNode",
-			Handler:    _Registry_UpdateNode_Handler,
-		},
-		{
-			MethodName: "Nodes",
-			Handler:    _Registry_Nodes_Handler,
-		},
-		{
-			MethodName: "Node",
-			Handler:    _Registry_Node_Handler,
+			MethodName: "UpdateMemberMetadata",
+			Handler:    _Registry_UpdateMemberMetadata_Handler,
 		},
 		{
 			MethodName: "Heartbeat",
 			Handler:    _Registry_Heartbeat_Handler,
 		},
+		{
+			MethodName: "Member",
+			Handler:    _Registry_Member_Handler,
+		},
+		{
+			MethodName: "Members",
+			Handler:    _Registry_Members_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Updates",
-			Handler:       _Registry_Updates_Handler,
+			StreamName:    "Subscribe",
+			Handler:       _Registry_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},
