@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
+
+package registry;
+
+service Registry {
+	rpc Subscribe(SubscribeRequest) returns (stream MemberUpdate);
+}
+
+enum MemberUpdateType {
+	REGISTER = 0;
+	UNREGISTER = 1;
+	STATE = 2;
+}
+
+message Member {
+	string id = 1;
+
+	string owner = 2;
+}
+
+message MemberUpdate {
+	string id = 1;
+
+	MemberUpdateType update_type = 2;
+
+	Member member = 3;
+}
+
+message SubscribeRequest {
+	repeated string known_members = 1;
+
+	bool owner_only = 2;
+}
