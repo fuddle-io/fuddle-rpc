@@ -45,7 +45,7 @@ func (c *registryClient) Subscribe(ctx context.Context, in *SubscribeRequest, op
 }
 
 type Registry_SubscribeClient interface {
-	Recv() (*MemberUpdate, error)
+	Recv() (*RemoteMemberUpdate, error)
 	grpc.ClientStream
 }
 
@@ -53,8 +53,8 @@ type registrySubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *registrySubscribeClient) Recv() (*MemberUpdate, error) {
-	m := new(MemberUpdate)
+func (x *registrySubscribeClient) Recv() (*RemoteMemberUpdate, error) {
+	m := new(RemoteMemberUpdate)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func _Registry_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) erro
 }
 
 type Registry_SubscribeServer interface {
-	Send(*MemberUpdate) error
+	Send(*RemoteMemberUpdate) error
 	grpc.ServerStream
 }
 
@@ -106,7 +106,7 @@ type registrySubscribeServer struct {
 	grpc.ServerStream
 }
 
-func (x *registrySubscribeServer) Send(m *MemberUpdate) error {
+func (x *registrySubscribeServer) Send(m *RemoteMemberUpdate) error {
 	return x.ServerStream.SendMsg(m)
 }
 

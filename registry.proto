@@ -5,27 +5,44 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 package registry;
 
 service Registry {
-	rpc Subscribe(SubscribeRequest) returns (stream MemberUpdate);
+	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
 }
 
 enum MemberUpdateType {
 	REGISTER = 0;
 	UNREGISTER = 1;
-	STATE = 2;
 }
 
 message Member {
 	string id = 1;
 
-	string owner = 2;
+	map<string, string> metadata = 2;
 }
 
-message MemberUpdate {
+message VersionedMember {
+	Member member = 1;
+
+	string owner = 2;
+
+	int64 transfer_timestamp = 3;
+
+	uint64 version = 4;
+}
+
+message LocalMemberUpdate {
 	string id = 1;
 
 	MemberUpdateType update_type = 2;
 
 	Member member = 3;
+}
+
+message RemoteMemberUpdate {
+	string id = 1;
+
+	MemberUpdateType update_type = 2;
+
+	VersionedMember member = 3;
 }
 
 message SubscribeRequest {
