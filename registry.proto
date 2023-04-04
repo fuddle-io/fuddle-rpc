@@ -13,6 +13,12 @@ enum MemberUpdateType {
 	UNREGISTER = 1;
 }
 
+message Owner {
+	string owner = 1;
+
+	int64 timestamp = 2;
+}
+
 message Member {
 	string id = 1;
 
@@ -22,11 +28,9 @@ message Member {
 message VersionedMember {
 	Member member = 1;
 
-	string owner = 2;
+	Owner owner = 2;
 
-	int64 transfer_timestamp = 3;
-
-	uint64 version = 4;
+	uint64 version = 3;
 }
 
 message LocalMemberUpdate {
