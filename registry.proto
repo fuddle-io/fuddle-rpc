@@ -6,6 +6,7 @@ package registry;
 
 service Registry {
 	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
+	rpc Register(stream ClientUpdate) returns (stream ClientAck);
 }
 
 enum MemberUpdateType {
@@ -45,4 +46,22 @@ message SubscribeRequest {
 	map<string, Version> known_members = 1;
 
 	bool owner_only = 2;
+}
+
+enum ClientUpdateType {
+	CLIENT_REGISTER = 0;
+	CLIENT_UNREGISTER = 1;
+	CLIENT_HEARTBEAT = 2;
+}
+
+message ClientUpdate {
+	ClientUpdateType update_type = 1;
+
+	Member member = 2;
+
+	uint64 seq_id = 3;
+}
+
+message ClientAck {
+	uint64 seq_id = 1;
 }

@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error)
+	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
 }
 
 type registryClient struct {
@@ -61,11 +62,43 @@ func (x *registrySubscribeClient) Recv() (*RemoteMemberUpdate, error) {
 	return m, nil
 }
 
+func (c *registryClient) Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Register", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &registryRegisterClient{stream}
+	return x, nil
+}
+
+type Registry_RegisterClient interface {
+	Send(*ClientUpdate) error
+	Recv() (*ClientAck, error)
+	grpc.ClientStream
+}
+
+type registryRegisterClient struct {
+	grpc.ClientStream
+}
+
+func (x *registryRegisterClient) Send(m *ClientUpdate) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *registryRegisterClient) Recv() (*ClientAck, error) {
+	m := new(ClientAck)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // RegistryServer is the server API for Registry service.
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
 	Subscribe(*SubscribeRequest, Registry_SubscribeServer) error
+	Register(Registry_RegisterServer) error
 	mustEmbedUnimplementedRegistryServer()
 }
 
@@ -75,6 +108,9 @@ type UnimplementedRegistryServer struct {
 
 func (UnimplementedRegistryServer) Subscribe(*SubscribeRequest, Registry_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedRegistryServer) Register(Registry_RegisterServer) error {
+	return status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
 func (UnimplementedRegistryServer) mustEmbedUnimplementedRegistryServer() {}
 
@@ -110,6 +146,32 @@ func (x *registrySubscribeServer) Send(m *RemoteMemberUpdate) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Registry_Register_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RegistryServer).Register(&registryRegisterServer{stream})
+}
+
+type Registry_RegisterServer interface {
+	Send(*ClientAck) error
+	Recv() (*ClientUpdate, error)
+	grpc.ServerStream
+}
+
+type registryRegisterServer struct {
+	grpc.ServerStream
+}
+
+func (x *registryRegisterServer) Send(m *ClientAck) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *registryRegisterServer) Recv() (*ClientUpdate, error) {
+	m := new(ClientUpdate)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Registry_ServiceDesc is the grpc.ServiceDesc for Registry service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +184,12 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "Subscribe",
 			Handler:       _Registry_Subscribe_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Register",
+			Handler:       _Registry_Register_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "registry.proto",
