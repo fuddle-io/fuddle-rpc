@@ -22,10 +22,17 @@ message Version {
 	uint64 counter = 3;
 }
 
+enum MemberStatus {
+	UP = 0;
+	DOWN = 1;
+}
+
 message Member {
 	string id = 1;
 
-	map<string, string> metadata = 2;
+	MemberStatus status = 2;
+
+	map<string, string> metadata = 3;
 }
 
 message LocalMemberUpdate {
