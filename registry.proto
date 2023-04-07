@@ -13,10 +13,12 @@ enum MemberUpdateType {
 	UNREGISTER = 1;
 }
 
-message Owner {
+message Version {
 	string owner = 1;
 
 	int64 timestamp = 2;
+
+	uint64 counter = 3;
 }
 
 message Member {
@@ -25,32 +27,22 @@ message Member {
 	map<string, string> metadata = 2;
 }
 
-message VersionedMember {
-	Member member = 1;
-
-	Owner owner = 2;
-
-	uint64 version = 3;
-}
-
 message LocalMemberUpdate {
-	string id = 1;
+	MemberUpdateType update_type = 1;
 
-	MemberUpdateType update_type = 2;
-
-	Member member = 3;
+	Member member = 2;
 }
 
 message RemoteMemberUpdate {
-	string id = 1;
+	MemberUpdateType update_type = 1;
 
-	MemberUpdateType update_type = 2;
+	Member member = 2;
 
-	VersionedMember member = 3;
+	Version version = 3;
 }
 
 message SubscribeRequest {
-	repeated string known_members = 1;
+	map<string, Version> known_members = 1;
 
 	bool owner_only = 2;
 }
