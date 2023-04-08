@@ -33,7 +33,19 @@ message Member {
 
 	MemberStatus status = 2;
 
-	map<string, string> metadata = 3;
+	// Service is the type of service running on the member.
+	string service = 3;
+
+	// Locality is the location of the node in the cluster.
+	string locality = 4;
+
+	// Created is the time the node was created in UNIX milliseconds.
+	int64 created = 5;
+
+	// Revision identifies the version of the service running on the node.
+	string revision = 6;
+
+	map<string, string> metadata = 7;
 }
 
 message LocalMemberUpdate {
