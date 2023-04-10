@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 type RegistryClient interface {
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error)
 	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
+	Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error)
+	Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error)
 }
 
 type registryClient struct {
@@ -93,12 +95,32 @@ func (x *registryRegisterClient) Recv() (*ClientAck, error) {
 	return m, nil
 }
 
+func (c *registryClient) Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error) {
+	out := new(MemberResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/Member", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *registryClient) Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error) {
+	out := new(MembersResponse)
+	err := c.cc.Invoke(ctx, "/registry.Registry/Members", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RegistryServer is the server API for Registry service.
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
 	Subscribe(*SubscribeRequest, Registry_SubscribeServer) error
 	Register(Registry_RegisterServer) error
+	Member(context.Context, *MemberRequest) (*MemberResponse, error)
+	Members(context.Context, *MembersRequest) (*MembersResponse, error)
 	mustEmbedUnimplementedRegistryServer()
 }
 
@@ -111,6 +133,12 @@ func (UnimplementedRegistryServer) Subscribe(*SubscribeRequest, Registry_Subscri
 }
 func (UnimplementedRegistryServer) Register(Registry_RegisterServer) error {
 	return status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedRegistryServer) Member(context.Context, *MemberRequest) (*MemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Member not implemented")
+}
+func (UnimplementedRegistryServer) Members(context.Context, *MembersRequest) (*MembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Members not implemented")
 }
 func (UnimplementedRegistryServer) mustEmbedUnimplementedRegistryServer() {}
 
@@ -172,13 +200,58 @@ func (x *registryRegisterServer) Recv() (*ClientUpdate, error) {
 	return m, nil
 }
 
+func _Registry_Member_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Member(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/Member",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Member(ctx, req.(*MemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Registry_Members_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).Members(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.Registry/Members",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).Members(ctx, req.(*MembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Registry_ServiceDesc is the grpc.ServiceDesc for Registry service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Registry_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "registry.Registry",
 	HandlerType: (*RegistryServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Member",
+			Handler:    _Registry_Member_Handler,
+		},
+		{
+			MethodName: "Members",
+			Handler:    _Registry_Members_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Subscribe",

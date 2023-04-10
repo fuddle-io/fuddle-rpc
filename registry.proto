@@ -7,6 +7,9 @@ package registry;
 service Registry {
 	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
 	rpc Register(stream ClientUpdate) returns (stream ClientAck);
+
+	rpc Member(MemberRequest) returns (MemberResponse) {}
+	rpc Members(MembersRequest) returns (MembersResponse) {}
 }
 
 enum MemberUpdateType {
@@ -84,4 +87,19 @@ message ClientUpdate {
 
 message ClientAck {
 	uint64 seq_id = 1;
+}
+
+message MemberRequest {
+	string id = 1;
+}
+
+message MemberResponse {
+	Member member = 1;
+}
+
+message MembersRequest {
+}
+
+message MembersResponse {
+	repeated Member members = 1;
 }
