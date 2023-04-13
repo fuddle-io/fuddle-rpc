@@ -5,6 +5,12 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 package registry;
 
 service Registry {
+	// Read streams update to the registry on the target instance.
+	rpc Read(SubscribeRequest) returns (stream RemoteMemberUpdate);
+
+	// Write updates the registry on the target instance.
+	rpc Write(stream ClientUpdate) returns (stream ClientAck);
+
 	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
 	rpc Register(stream ClientUpdate) returns (stream ClientAck);
 
@@ -81,12 +87,9 @@ message ClientUpdate {
 	ClientUpdateType update_type = 1;
 
 	Member member = 2;
-
-	uint64 seq_id = 3;
 }
 
 message ClientAck {
-	uint64 seq_id = 1;
 }
 
 message MemberRequest {

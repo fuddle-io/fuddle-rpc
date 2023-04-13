@@ -18,6 +18,10 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
+	// Read streams update to the registry on the target instance.
+	Read(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_ReadClient, error)
+	// Write updates the registry on the target instance.
+	Write(ctx context.Context, opts ...grpc.CallOption) (Registry_WriteClient, error)
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error)
 	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
 	Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error)
@@ -32,8 +36,71 @@ func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
 	return &registryClient{cc}
 }
 
+func (c *registryClient) Read(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_ReadClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Read", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &registryReadClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Registry_ReadClient interface {
+	Recv() (*RemoteMemberUpdate, error)
+	grpc.ClientStream
+}
+
+type registryReadClient struct {
+	grpc.ClientStream
+}
+
+func (x *registryReadClient) Recv() (*RemoteMemberUpdate, error) {
+	m := new(RemoteMemberUpdate)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *registryClient) Write(ctx context.Context, opts ...grpc.CallOption) (Registry_WriteClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Write", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &registryWriteClient{stream}
+	return x, nil
+}
+
+type Registry_WriteClient interface {
+	Send(*ClientUpdate) error
+	Recv() (*ClientAck, error)
+	grpc.ClientStream
+}
+
+type registryWriteClient struct {
+	grpc.ClientStream
+}
+
+func (x *registryWriteClient) Send(m *ClientUpdate) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *registryWriteClient) Recv() (*ClientAck, error) {
+	m := new(ClientAck)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *registryClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Subscribe", opts...)
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[2], "/registry.Registry/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +132,7 @@ func (x *registrySubscribeClient) Recv() (*RemoteMemberUpdate, error) {
 }
 
 func (c *registryClient) Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Register", opts...)
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[3], "/registry.Registry/Register", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +184,10 @@ func (c *registryClient) Members(ctx context.Context, in *MembersRequest, opts .
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
+	// Read streams update to the registry on the target instance.
+	Read(*SubscribeRequest, Registry_ReadServer) error
+	// Write updates the registry on the target instance.
+	Write(Registry_WriteServer) error
 	Subscribe(*SubscribeRequest, Registry_SubscribeServer) error
 	Register(Registry_RegisterServer) error
 	Member(context.Context, *MemberRequest) (*MemberResponse, error)
@@ -128,6 +199,12 @@ type RegistryServer interface {
 type UnimplementedRegistryServer struct {
 }
 
+func (UnimplementedRegistryServer) Read(*SubscribeRequest, Registry_ReadServer) error {
+	return status.Errorf(codes.Unimplemented, "method Read not implemented")
+}
+func (UnimplementedRegistryServer) Write(Registry_WriteServer) error {
+	return status.Errorf(codes.Unimplemented, "method Write not implemented")
+}
 func (UnimplementedRegistryServer) Subscribe(*SubscribeRequest, Registry_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
@@ -151,6 +228,53 @@ type UnsafeRegistryServer interface {
 
 func RegisterRegistryServer(s grpc.ServiceRegistrar, srv RegistryServer) {
 	s.RegisterService(&Registry_ServiceDesc, srv)
+}
+
+func _Registry_Read_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RegistryServer).Read(m, &registryReadServer{stream})
+}
+
+type Registry_ReadServer interface {
+	Send(*RemoteMemberUpdate) error
+	grpc.ServerStream
+}
+
+type registryReadServer struct {
+	grpc.ServerStream
+}
+
+func (x *registryReadServer) Send(m *RemoteMemberUpdate) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Registry_Write_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(RegistryServer).Write(&registryWriteServer{stream})
+}
+
+type Registry_WriteServer interface {
+	Send(*ClientAck) error
+	Recv() (*ClientUpdate, error)
+	grpc.ServerStream
+}
+
+type registryWriteServer struct {
+	grpc.ServerStream
+}
+
+func (x *registryWriteServer) Send(m *ClientAck) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *registryWriteServer) Recv() (*ClientUpdate, error) {
+	m := new(ClientUpdate)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _Registry_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -253,6 +377,17 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Read",
+			Handler:       _Registry_Read_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Write",
+			Handler:       _Registry_Write_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
 		{
 			StreamName:    "Subscribe",
 			Handler:       _Registry_Subscribe_Handler,
