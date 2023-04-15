@@ -18,13 +18,11 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RegistryClient interface {
-	// Read streams update to the registry on the target instance.
-	Read(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_ReadClient, error)
-	// Write updates the registry on the target instance.
-	Write(ctx context.Context, opts ...grpc.CallOption) (Registry_WriteClient, error)
 	Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error)
 	Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error)
+	// Lookup the requested member.
 	Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error)
+	// List the members in the registry.
 	Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error)
 }
 
@@ -36,71 +34,8 @@ func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
 	return &registryClient{cc}
 }
 
-func (c *registryClient) Read(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_ReadClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Read", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &registryReadClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Registry_ReadClient interface {
-	Recv() (*RemoteMemberUpdate, error)
-	grpc.ClientStream
-}
-
-type registryReadClient struct {
-	grpc.ClientStream
-}
-
-func (x *registryReadClient) Recv() (*RemoteMemberUpdate, error) {
-	m := new(RemoteMemberUpdate)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *registryClient) Write(ctx context.Context, opts ...grpc.CallOption) (Registry_WriteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Write", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &registryWriteClient{stream}
-	return x, nil
-}
-
-type Registry_WriteClient interface {
-	Send(*ClientUpdate) error
-	Recv() (*ClientAck, error)
-	grpc.ClientStream
-}
-
-type registryWriteClient struct {
-	grpc.ClientStream
-}
-
-func (x *registryWriteClient) Send(m *ClientUpdate) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *registryWriteClient) Recv() (*ClientAck, error) {
-	m := new(ClientAck)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *registryClient) Subscribe(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (Registry_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[2], "/registry.Registry/Subscribe", opts...)
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[0], "/registry.Registry/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +67,7 @@ func (x *registrySubscribeClient) Recv() (*RemoteMemberUpdate, error) {
 }
 
 func (c *registryClient) Register(ctx context.Context, opts ...grpc.CallOption) (Registry_RegisterClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[3], "/registry.Registry/Register", opts...)
+	stream, err := c.cc.NewStream(ctx, &Registry_ServiceDesc.Streams[1], "/registry.Registry/Register", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,13 +119,11 @@ func (c *registryClient) Members(ctx context.Context, in *MembersRequest, opts .
 // All implementations must embed UnimplementedRegistryServer
 // for forward compatibility
 type RegistryServer interface {
-	// Read streams update to the registry on the target instance.
-	Read(*SubscribeRequest, Registry_ReadServer) error
-	// Write updates the registry on the target instance.
-	Write(Registry_WriteServer) error
 	Subscribe(*SubscribeRequest, Registry_SubscribeServer) error
 	Register(Registry_RegisterServer) error
+	// Lookup the requested member.
 	Member(context.Context, *MemberRequest) (*MemberResponse, error)
+	// List the members in the registry.
 	Members(context.Context, *MembersRequest) (*MembersResponse, error)
 	mustEmbedUnimplementedRegistryServer()
 }
@@ -199,12 +132,6 @@ type RegistryServer interface {
 type UnimplementedRegistryServer struct {
 }
 
-func (UnimplementedRegistryServer) Read(*SubscribeRequest, Registry_ReadServer) error {
-	return status.Errorf(codes.Unimplemented, "method Read not implemented")
-}
-func (UnimplementedRegistryServer) Write(Registry_WriteServer) error {
-	return status.Errorf(codes.Unimplemented, "method Write not implemented")
-}
 func (UnimplementedRegistryServer) Subscribe(*SubscribeRequest, Registry_SubscribeServer) error {
 	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
@@ -228,53 +155,6 @@ type UnsafeRegistryServer interface {
 
 func RegisterRegistryServer(s grpc.ServiceRegistrar, srv RegistryServer) {
 	s.RegisterService(&Registry_ServiceDesc, srv)
-}
-
-func _Registry_Read_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RegistryServer).Read(m, &registryReadServer{stream})
-}
-
-type Registry_ReadServer interface {
-	Send(*RemoteMemberUpdate) error
-	grpc.ServerStream
-}
-
-type registryReadServer struct {
-	grpc.ServerStream
-}
-
-func (x *registryReadServer) Send(m *RemoteMemberUpdate) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Registry_Write_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(RegistryServer).Write(&registryWriteServer{stream})
-}
-
-type Registry_WriteServer interface {
-	Send(*ClientAck) error
-	Recv() (*ClientUpdate, error)
-	grpc.ServerStream
-}
-
-type registryWriteServer struct {
-	grpc.ServerStream
-}
-
-func (x *registryWriteServer) Send(m *ClientAck) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *registryWriteServer) Recv() (*ClientUpdate, error) {
-	m := new(ClientUpdate)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func _Registry_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -378,17 +258,6 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Read",
-			Handler:       _Registry_Read_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "Write",
-			Handler:       _Registry_Write_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
-		},
-		{
 			StreamName:    "Subscribe",
 			Handler:       _Registry_Subscribe_Handler,
 			ServerStreams: true,
@@ -398,6 +267,433 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _Registry_Register_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+	},
+	Metadata: "registry.proto",
+}
+
+// ClientReadRegistryClient is the client API for ClientReadRegistry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ClientReadRegistryClient interface {
+	// Streams updates to the registry.
+	Updates(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (ClientReadRegistry_UpdatesClient, error)
+	// Lookup the requested member.
+	Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error)
+	// List the members in the registry.
+	Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error)
+}
+
+type clientReadRegistryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClientReadRegistryClient(cc grpc.ClientConnInterface) ClientReadRegistryClient {
+	return &clientReadRegistryClient{cc}
+}
+
+func (c *clientReadRegistryClient) Updates(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (ClientReadRegistry_UpdatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ClientReadRegistry_ServiceDesc.Streams[0], "/registry.ClientReadRegistry/Updates", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &clientReadRegistryUpdatesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ClientReadRegistry_UpdatesClient interface {
+	Recv() (*RemoteMemberUpdate, error)
+	grpc.ClientStream
+}
+
+type clientReadRegistryUpdatesClient struct {
+	grpc.ClientStream
+}
+
+func (x *clientReadRegistryUpdatesClient) Recv() (*RemoteMemberUpdate, error) {
+	m := new(RemoteMemberUpdate)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *clientReadRegistryClient) Member(ctx context.Context, in *MemberRequest, opts ...grpc.CallOption) (*MemberResponse, error) {
+	out := new(MemberResponse)
+	err := c.cc.Invoke(ctx, "/registry.ClientReadRegistry/Member", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientReadRegistryClient) Members(ctx context.Context, in *MembersRequest, opts ...grpc.CallOption) (*MembersResponse, error) {
+	out := new(MembersResponse)
+	err := c.cc.Invoke(ctx, "/registry.ClientReadRegistry/Members", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ClientReadRegistryServer is the server API for ClientReadRegistry service.
+// All implementations must embed UnimplementedClientReadRegistryServer
+// for forward compatibility
+type ClientReadRegistryServer interface {
+	// Streams updates to the registry.
+	Updates(*SubscribeRequest, ClientReadRegistry_UpdatesServer) error
+	// Lookup the requested member.
+	Member(context.Context, *MemberRequest) (*MemberResponse, error)
+	// List the members in the registry.
+	Members(context.Context, *MembersRequest) (*MembersResponse, error)
+	mustEmbedUnimplementedClientReadRegistryServer()
+}
+
+// UnimplementedClientReadRegistryServer must be embedded to have forward compatible implementations.
+type UnimplementedClientReadRegistryServer struct {
+}
+
+func (UnimplementedClientReadRegistryServer) Updates(*SubscribeRequest, ClientReadRegistry_UpdatesServer) error {
+	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
+}
+func (UnimplementedClientReadRegistryServer) Member(context.Context, *MemberRequest) (*MemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Member not implemented")
+}
+func (UnimplementedClientReadRegistryServer) Members(context.Context, *MembersRequest) (*MembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Members not implemented")
+}
+func (UnimplementedClientReadRegistryServer) mustEmbedUnimplementedClientReadRegistryServer() {}
+
+// UnsafeClientReadRegistryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClientReadRegistryServer will
+// result in compilation errors.
+type UnsafeClientReadRegistryServer interface {
+	mustEmbedUnimplementedClientReadRegistryServer()
+}
+
+func RegisterClientReadRegistryServer(s grpc.ServiceRegistrar, srv ClientReadRegistryServer) {
+	s.RegisterService(&ClientReadRegistry_ServiceDesc, srv)
+}
+
+func _ClientReadRegistry_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ClientReadRegistryServer).Updates(m, &clientReadRegistryUpdatesServer{stream})
+}
+
+type ClientReadRegistry_UpdatesServer interface {
+	Send(*RemoteMemberUpdate) error
+	grpc.ServerStream
+}
+
+type clientReadRegistryUpdatesServer struct {
+	grpc.ServerStream
+}
+
+func (x *clientReadRegistryUpdatesServer) Send(m *RemoteMemberUpdate) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _ClientReadRegistry_Member_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientReadRegistryServer).Member(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.ClientReadRegistry/Member",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientReadRegistryServer).Member(ctx, req.(*MemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientReadRegistry_Members_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientReadRegistryServer).Members(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.ClientReadRegistry/Members",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientReadRegistryServer).Members(ctx, req.(*MembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ClientReadRegistry_ServiceDesc is the grpc.ServiceDesc for ClientReadRegistry service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClientReadRegistry_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "registry.ClientReadRegistry",
+	HandlerType: (*ClientReadRegistryServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Member",
+			Handler:    _ClientReadRegistry_Member_Handler,
+		},
+		{
+			MethodName: "Members",
+			Handler:    _ClientReadRegistry_Members_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Updates",
+			Handler:       _ClientReadRegistry_Updates_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "registry.proto",
+}
+
+// ClientWriteRegistryClient is the client API for ClientWriteRegistry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ClientWriteRegistryClient interface {
+	Register(ctx context.Context, opts ...grpc.CallOption) (ClientWriteRegistry_RegisterClient, error)
+}
+
+type clientWriteRegistryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClientWriteRegistryClient(cc grpc.ClientConnInterface) ClientWriteRegistryClient {
+	return &clientWriteRegistryClient{cc}
+}
+
+func (c *clientWriteRegistryClient) Register(ctx context.Context, opts ...grpc.CallOption) (ClientWriteRegistry_RegisterClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ClientWriteRegistry_ServiceDesc.Streams[0], "/registry.ClientWriteRegistry/Register", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &clientWriteRegistryRegisterClient{stream}
+	return x, nil
+}
+
+type ClientWriteRegistry_RegisterClient interface {
+	Send(*ClientUpdate) error
+	CloseAndRecv() (*ClientAck, error)
+	grpc.ClientStream
+}
+
+type clientWriteRegistryRegisterClient struct {
+	grpc.ClientStream
+}
+
+func (x *clientWriteRegistryRegisterClient) Send(m *ClientUpdate) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *clientWriteRegistryRegisterClient) CloseAndRecv() (*ClientAck, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ClientAck)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ClientWriteRegistryServer is the server API for ClientWriteRegistry service.
+// All implementations must embed UnimplementedClientWriteRegistryServer
+// for forward compatibility
+type ClientWriteRegistryServer interface {
+	Register(ClientWriteRegistry_RegisterServer) error
+	mustEmbedUnimplementedClientWriteRegistryServer()
+}
+
+// UnimplementedClientWriteRegistryServer must be embedded to have forward compatible implementations.
+type UnimplementedClientWriteRegistryServer struct {
+}
+
+func (UnimplementedClientWriteRegistryServer) Register(ClientWriteRegistry_RegisterServer) error {
+	return status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedClientWriteRegistryServer) mustEmbedUnimplementedClientWriteRegistryServer() {}
+
+// UnsafeClientWriteRegistryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClientWriteRegistryServer will
+// result in compilation errors.
+type UnsafeClientWriteRegistryServer interface {
+	mustEmbedUnimplementedClientWriteRegistryServer()
+}
+
+func RegisterClientWriteRegistryServer(s grpc.ServiceRegistrar, srv ClientWriteRegistryServer) {
+	s.RegisterService(&ClientWriteRegistry_ServiceDesc, srv)
+}
+
+func _ClientWriteRegistry_Register_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ClientWriteRegistryServer).Register(&clientWriteRegistryRegisterServer{stream})
+}
+
+type ClientWriteRegistry_RegisterServer interface {
+	SendAndClose(*ClientAck) error
+	Recv() (*ClientUpdate, error)
+	grpc.ServerStream
+}
+
+type clientWriteRegistryRegisterServer struct {
+	grpc.ServerStream
+}
+
+func (x *clientWriteRegistryRegisterServer) SendAndClose(m *ClientAck) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *clientWriteRegistryRegisterServer) Recv() (*ClientUpdate, error) {
+	m := new(ClientUpdate)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ClientWriteRegistry_ServiceDesc is the grpc.ServiceDesc for ClientWriteRegistry service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClientWriteRegistry_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "registry.ClientWriteRegistry",
+	HandlerType: (*ClientWriteRegistryServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Register",
+			Handler:       _ClientWriteRegistry_Register_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "registry.proto",
+}
+
+// ReplicaReadRegistryClient is the client API for ReplicaReadRegistry service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ReplicaReadRegistryClient interface {
+	// Streams updates to members owned by the target node.
+	Updates(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (ReplicaReadRegistry_UpdatesClient, error)
+}
+
+type replicaReadRegistryClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewReplicaReadRegistryClient(cc grpc.ClientConnInterface) ReplicaReadRegistryClient {
+	return &replicaReadRegistryClient{cc}
+}
+
+func (c *replicaReadRegistryClient) Updates(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (ReplicaReadRegistry_UpdatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ReplicaReadRegistry_ServiceDesc.Streams[0], "/registry.ReplicaReadRegistry/Updates", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &replicaReadRegistryUpdatesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ReplicaReadRegistry_UpdatesClient interface {
+	Recv() (*RemoteMemberUpdate, error)
+	grpc.ClientStream
+}
+
+type replicaReadRegistryUpdatesClient struct {
+	grpc.ClientStream
+}
+
+func (x *replicaReadRegistryUpdatesClient) Recv() (*RemoteMemberUpdate, error) {
+	m := new(RemoteMemberUpdate)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// ReplicaReadRegistryServer is the server API for ReplicaReadRegistry service.
+// All implementations must embed UnimplementedReplicaReadRegistryServer
+// for forward compatibility
+type ReplicaReadRegistryServer interface {
+	// Streams updates to members owned by the target node.
+	Updates(*SubscribeRequest, ReplicaReadRegistry_UpdatesServer) error
+	mustEmbedUnimplementedReplicaReadRegistryServer()
+}
+
+// UnimplementedReplicaReadRegistryServer must be embedded to have forward compatible implementations.
+type UnimplementedReplicaReadRegistryServer struct {
+}
+
+func (UnimplementedReplicaReadRegistryServer) Updates(*SubscribeRequest, ReplicaReadRegistry_UpdatesServer) error {
+	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
+}
+func (UnimplementedReplicaReadRegistryServer) mustEmbedUnimplementedReplicaReadRegistryServer() {}
+
+// UnsafeReplicaReadRegistryServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ReplicaReadRegistryServer will
+// result in compilation errors.
+type UnsafeReplicaReadRegistryServer interface {
+	mustEmbedUnimplementedReplicaReadRegistryServer()
+}
+
+func RegisterReplicaReadRegistryServer(s grpc.ServiceRegistrar, srv ReplicaReadRegistryServer) {
+	s.RegisterService(&ReplicaReadRegistry_ServiceDesc, srv)
+}
+
+func _ReplicaReadRegistry_Updates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ReplicaReadRegistryServer).Updates(m, &replicaReadRegistryUpdatesServer{stream})
+}
+
+type ReplicaReadRegistry_UpdatesServer interface {
+	Send(*RemoteMemberUpdate) error
+	grpc.ServerStream
+}
+
+type replicaReadRegistryUpdatesServer struct {
+	grpc.ServerStream
+}
+
+func (x *replicaReadRegistryUpdatesServer) Send(m *RemoteMemberUpdate) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// ReplicaReadRegistry_ServiceDesc is the grpc.ServiceDesc for ReplicaReadRegistry service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ReplicaReadRegistry_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "registry.ReplicaReadRegistry",
+	HandlerType: (*ReplicaReadRegistryServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Updates",
+			Handler:       _ReplicaReadRegistry_Updates_Handler,
+			ServerStreams: true,
 		},
 	},
 	Metadata: "registry.proto",
