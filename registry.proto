@@ -4,18 +4,39 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 
 package registry;
 
+// DEPRICATED
 service Registry {
-	// Read streams update to the registry on the target instance.
-	rpc Read(SubscribeRequest) returns (stream RemoteMemberUpdate);
-
-	// Write updates the registry on the target instance.
-	rpc Write(stream ClientUpdate) returns (stream ClientAck);
-
 	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
 	rpc Register(stream ClientUpdate) returns (stream ClientAck);
 
+	// Lookup the requested member.
 	rpc Member(MemberRequest) returns (MemberResponse) {}
+
+	// List the members in the registry.
 	rpc Members(MembersRequest) returns (MembersResponse) {}
+}
+
+// A service that clients use to receive registry updates.
+service ClientReadRegistry {
+	// Streams updates to the registry.
+	rpc Updates(SubscribeRequest) returns (stream RemoteMemberUpdate);
+
+	// Lookup the requested member.
+	rpc Member(MemberRequest) returns (MemberResponse) {}
+
+	// List the members in the registry.
+	rpc Members(MembersRequest) returns (MembersResponse) {}
+}
+
+// A service that clients use to registry members.
+service ClientWriteRegistry {
+	rpc Register(stream ClientUpdate) returns (ClientAck);
+}
+
+// A service that nodes use to stream updates from other nodes.
+service ReplicaReadRegistry {
+	// Streams updates to members owned by the target node.
+	rpc Updates(SubscribeRequest) returns (stream RemoteMemberUpdate);
 }
 
 enum MemberUpdateType {
@@ -73,7 +94,6 @@ message RemoteMemberUpdate {
 
 message SubscribeRequest {
 	map<string, Version> known_members = 1;
-
 	bool owner_only = 2;
 }
 
@@ -87,9 +107,12 @@ message ClientUpdate {
 	ClientUpdateType update_type = 1;
 
 	Member member = 2;
+
+	uint64 seq_id = 3;
 }
 
 message ClientAck {
+	uint64 seq_id = 1;
 }
 
 message MemberRequest {
