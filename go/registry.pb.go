@@ -232,7 +232,9 @@ type Member struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id     string       `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// TODO remove status from the member? keep member to only client registered
+	// state? Rename MemberState
 	Status MemberStatus `protobuf:"varint,2,opt,name=status,proto3,enum=registry.MemberStatus" json:"status,omitempty"`
 	// Service is the type of service running on the member.
 	Service string `protobuf:"bytes,3,opt,name=service,proto3" json:"service,omitempty"`
