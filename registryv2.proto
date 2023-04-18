@@ -79,6 +79,10 @@ message Member2 {
 	Liveness liveness = 2;
 
 	Version2 version = 3;
+
+	// expiry is the time the member should be removed from the cluster if it
+	// has a liveness state of 'left'.
+	int64 expiry = 4;
 }
 
 message UpdateRequest {
@@ -89,7 +93,7 @@ message UpdateResponse {}
 
 message ReplicaSyncRequest {
 	// The known owner versions on the sender.
-	map<string, MonotonicTimestamp> versions = 1;
+	map<string, MonotonicTimestamp> digest = 1;
 }
 
 message ReplicaSyncResponse {
@@ -104,15 +108,24 @@ message ClientFilter {
 
 message ClientSyncRequest {
 	// The known owner versions on the client.
-	map<string, MonotonicTimestamp> versions = 1;
+	map<string, MonotonicTimestamp> digest = 1;
 
 	ClientFilter filter = 2;
 }
 
 message ClientSyncUpdate {
+	Member2 member = 1;
+}
+
+enum ClientMemberUpdateType {
+	REGISTER = 0;
+	UNREGISTER = 1;
+	HEARTBEAT = 2;
 }
 
 message ClientMemberUpdate {
+	ClientMemberUpdateType update_type = 1;
+	optional Member2 member = 2;
 }
 
 message ClientMemberUpdateAck {
