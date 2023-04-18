@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
+
+package registryv2;
+
+service ReplicaRegistry2 {
+	// Update is used for forward registry updates to replica nodes.
+	rpc Update(UpdateRequest) returns (UpdateResponse);
+
+	// Sync sends the known versions for the members in the registry (or a
+	// subset if too large) and receives any missed updates for those members
+	// in response.
+	rpc Sync(ReplicaSyncRequest) returns (ReplicaSyncResponse);
+}
+
+service ClientReadRegistry2 {
+	rpc Sync(ClientSyncRequest) returns (stream ClientSyncUpdate);
+}
+
+service ClientWriteRegistry2 {
+	rpc Sync(stream ClientMemberUpdate) returns (stream ClientMemberUpdateAck);
+}
+
+message Locality {
+	string region = 1;
+
+	string availability_zone = 2;
+}
+
+message MemberState {
+	// A unique identifier for the member in the cluster
+	string id = 1;
+
+	// An application defined status for the member (such as booting, active or
+	// leaving).
+	string status = 2;
+
+	// The type of service running on the member (such as orders, redis and
+	// storage).
+	string service = 3;
+
+	// The location of the node in the cluster.
+	Locality locality = 4;
+
+	// The UNIX timestamp in milliseconds that the member started.
+	int64 started = 5;
+
+	// An identifier for the version of the service the member is running, such
+	// as a Git tag or commit SHA.
+	string revision = 6;
+}
+
+enum Liveness {
+	UP = 0;
+	DOWN = 1;
+	LEFT = 2;
+}
+
+// MonotonicTimestamp is a timestamp that always increases. It includes a
+// timestamp in UNIX milliseconds plus a counter, so if there are multiple
+// timestamps in the same millisecond, the counter is incremented to distinguish
+// between them.
+message MonotonicTimestamp {
+	int64 timestamp = 1;
+	uint64 counter = 2;
+}
+
+message Version2 {
+	string owner_id = 1;
+	// Monotonic timestamp required to order updates that happen in the same
+	// millisecond.
+	MonotonicTimestamp timestamp = 2;
+}
+
+message Member2 {
+	MemberState state = 1;
+
+	Liveness liveness = 2;
+
+	Version2 version = 3;
+}
+
+message UpdateRequest {
+	Member2 member = 1;
+}
+
+message UpdateResponse {}
+
+message ReplicaSyncRequest {
+	// The known owner versions on the sender.
+	map<string, MonotonicTimestamp> versions = 1;
+}
+
+message ReplicaSyncResponse {
+	repeated Member2 members = 1; 
+}
+
+message ClientFilter {
+	repeated Locality locality = 1;
+
+	repeated string service = 2;
+}
+
+message ClientSyncRequest {
+	// The known owner versions on the client.
+	map<string, MonotonicTimestamp> versions = 1;
+
+	ClientFilter filter = 2;
+}
+
+message ClientSyncUpdate {
+}
+
+message ClientMemberUpdate {
+}
+
+message ClientMemberUpdateAck {
+}
