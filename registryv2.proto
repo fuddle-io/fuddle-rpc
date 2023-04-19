@@ -49,6 +49,9 @@ message MemberState {
 	// An identifier for the version of the service the member is running, such
 	// as a Git tag or commit SHA.
 	string revision = 6;
+
+	// A set of arbitrary key-value pairs containing application defined state.
+	map<string, string> metadata = 7;
 }
 
 enum Liveness {
@@ -80,8 +83,11 @@ message Member2 {
 
 	Version2 version = 3;
 
-	// expiry is the time the member should be removed from the cluster if it
-	// has a liveness state of 'left'.
+	// expiry is the time the member should be 'downgraded'. If it is 'down',
+	// its state is changed to 'left', and if it is 'left', it is removed from
+	// the cluster.
+	//
+	// Note if the member is 'up' the expiry is ignored.
 	int64 expiry = 4;
 }
 

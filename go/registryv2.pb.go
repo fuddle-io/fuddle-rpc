@@ -193,6 +193,8 @@ type MemberState struct {
 	// An identifier for the version of the service the member is running, such
 	// as a Git tag or commit SHA.
 	Revision string `protobuf:"bytes,6,opt,name=revision,proto3" json:"revision,omitempty"`
+	// A set of arbitrary key-value pairs containing application defined state.
+	Metadata map[string]string `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *MemberState) Reset() {
@@ -267,6 +269,13 @@ func (x *MemberState) GetRevision() string {
 		return x.Revision
 	}
 	return ""
+}
+
+func (x *MemberState) GetMetadata() map[string]string {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
 }
 
 // MonotonicTimestamp is a timestamp that always increases. It includes a
@@ -393,8 +402,11 @@ type Member2 struct {
 	State    *MemberState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 	Liveness Liveness     `protobuf:"varint,2,opt,name=liveness,proto3,enum=registryv2.Liveness" json:"liveness,omitempty"`
 	Version  *Version2    `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	// expiry is the time the member should be removed from the cluster if it
-	// has a liveness state of 'left'.
+	// expiry is the time the member should be 'downgraded'. If it is 'down',
+	// its state is changed to 'left', and if it is 'left', it is removed from
+	// the cluster.
+	//
+	// Note if the member is 'up' the expiry is ignored.
 	Expiry int64 `protobuf:"varint,4,opt,name=expiry,proto3" json:"expiry,omitempty"`
 }
 
@@ -899,7 +911,7 @@ var file_registryv2_proto_rawDesc = []byte{
 	0x6f, 0x6e, 0x12, 0x2b, 0x0a, 0x11, 0x61, 0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69,
 	0x74, 0x79, 0x5f, 0x7a, 0x6f, 0x6e, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x61,
 	0x76, 0x61, 0x69, 0x6c, 0x61, 0x62, 0x69, 0x6c, 0x69, 0x74, 0x79, 0x5a, 0x6f, 0x6e, 0x65, 0x22,
-	0xb7, 0x01, 0x0a, 0x0b, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12,
+	0xb7, 0x02, 0x0a, 0x0b, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x53, 0x74, 0x61, 0x74, 0x65, 0x12,
 	0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12,
 	0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
 	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x65, 0x72, 0x76, 0x69,
@@ -910,7 +922,15 @@ var file_registryv2_proto_rawDesc = []byte{
 	0x69, 0x74, 0x79, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x74, 0x61, 0x72, 0x74, 0x65, 0x64, 0x18, 0x05,
 	0x20, 0x01, 0x28, 0x03, 0x52, 0x07, 0x73, 0x74, 0x61, 0x72, 0x74, 0x65, 0x64, 0x12, 0x1a, 0x0a,
 	0x08, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x08, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x4c, 0x0a, 0x12, 0x4d, 0x6f, 0x6e,
+	0x08, 0x72, 0x65, 0x76, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x41, 0x0a, 0x08, 0x6d, 0x65, 0x74,
+	0x61, 0x64, 0x61, 0x74, 0x61, 0x18, 0x07, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x72, 0x65,
+	0x67, 0x69, 0x73, 0x74, 0x72, 0x79, 0x76, 0x32, 0x2e, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x53,
+	0x74, 0x61, 0x74, 0x65, 0x2e, 0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74,
+	0x72, 0x79, 0x52, 0x08, 0x6d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x1a, 0x3b, 0x0a, 0x0d,
+	0x4d, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a,
+	0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12,
+	0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x4c, 0x0a, 0x12, 0x4d, 0x6f, 0x6e,
 	0x6f, 0x74, 0x6f, 0x6e, 0x69, 0x63, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x12,
 	0x1c, 0x0a, 0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x03, 0x52, 0x09, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x12, 0x18, 0x0a,
@@ -1037,7 +1057,7 @@ func file_registryv2_proto_rawDescGZIP() []byte {
 }
 
 var file_registryv2_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_registryv2_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_registryv2_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_registryv2_proto_goTypes = []interface{}{
 	(Liveness)(0),                 // 0: registryv2.Liveness
 	(ClientMemberUpdateType)(0),   // 1: registryv2.ClientMemberUpdateType
@@ -1055,39 +1075,41 @@ var file_registryv2_proto_goTypes = []interface{}{
 	(*ClientSyncUpdate)(nil),      // 13: registryv2.ClientSyncUpdate
 	(*ClientMemberUpdate)(nil),    // 14: registryv2.ClientMemberUpdate
 	(*ClientMemberUpdateAck)(nil), // 15: registryv2.ClientMemberUpdateAck
-	nil,                           // 16: registryv2.ReplicaSyncRequest.DigestEntry
-	nil,                           // 17: registryv2.ClientSyncRequest.DigestEntry
+	nil,                           // 16: registryv2.MemberState.MetadataEntry
+	nil,                           // 17: registryv2.ReplicaSyncRequest.DigestEntry
+	nil,                           // 18: registryv2.ClientSyncRequest.DigestEntry
 }
 var file_registryv2_proto_depIdxs = []int32{
 	2,  // 0: registryv2.MemberState.locality:type_name -> registryv2.Locality
-	4,  // 1: registryv2.Version2.timestamp:type_name -> registryv2.MonotonicTimestamp
-	3,  // 2: registryv2.Member2.state:type_name -> registryv2.MemberState
-	0,  // 3: registryv2.Member2.liveness:type_name -> registryv2.Liveness
-	5,  // 4: registryv2.Member2.version:type_name -> registryv2.Version2
-	6,  // 5: registryv2.UpdateRequest.member:type_name -> registryv2.Member2
-	16, // 6: registryv2.ReplicaSyncRequest.digest:type_name -> registryv2.ReplicaSyncRequest.DigestEntry
-	6,  // 7: registryv2.ReplicaSyncResponse.members:type_name -> registryv2.Member2
-	2,  // 8: registryv2.ClientFilter.locality:type_name -> registryv2.Locality
-	17, // 9: registryv2.ClientSyncRequest.digest:type_name -> registryv2.ClientSyncRequest.DigestEntry
-	11, // 10: registryv2.ClientSyncRequest.filter:type_name -> registryv2.ClientFilter
-	6,  // 11: registryv2.ClientSyncUpdate.member:type_name -> registryv2.Member2
-	1,  // 12: registryv2.ClientMemberUpdate.update_type:type_name -> registryv2.ClientMemberUpdateType
-	6,  // 13: registryv2.ClientMemberUpdate.member:type_name -> registryv2.Member2
-	4,  // 14: registryv2.ReplicaSyncRequest.DigestEntry.value:type_name -> registryv2.MonotonicTimestamp
-	4,  // 15: registryv2.ClientSyncRequest.DigestEntry.value:type_name -> registryv2.MonotonicTimestamp
-	7,  // 16: registryv2.ReplicaRegistry2.Update:input_type -> registryv2.UpdateRequest
-	9,  // 17: registryv2.ReplicaRegistry2.Sync:input_type -> registryv2.ReplicaSyncRequest
-	12, // 18: registryv2.ClientReadRegistry2.Sync:input_type -> registryv2.ClientSyncRequest
-	14, // 19: registryv2.ClientWriteRegistry2.Sync:input_type -> registryv2.ClientMemberUpdate
-	8,  // 20: registryv2.ReplicaRegistry2.Update:output_type -> registryv2.UpdateResponse
-	10, // 21: registryv2.ReplicaRegistry2.Sync:output_type -> registryv2.ReplicaSyncResponse
-	13, // 22: registryv2.ClientReadRegistry2.Sync:output_type -> registryv2.ClientSyncUpdate
-	15, // 23: registryv2.ClientWriteRegistry2.Sync:output_type -> registryv2.ClientMemberUpdateAck
-	20, // [20:24] is the sub-list for method output_type
-	16, // [16:20] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	16, // 1: registryv2.MemberState.metadata:type_name -> registryv2.MemberState.MetadataEntry
+	4,  // 2: registryv2.Version2.timestamp:type_name -> registryv2.MonotonicTimestamp
+	3,  // 3: registryv2.Member2.state:type_name -> registryv2.MemberState
+	0,  // 4: registryv2.Member2.liveness:type_name -> registryv2.Liveness
+	5,  // 5: registryv2.Member2.version:type_name -> registryv2.Version2
+	6,  // 6: registryv2.UpdateRequest.member:type_name -> registryv2.Member2
+	17, // 7: registryv2.ReplicaSyncRequest.digest:type_name -> registryv2.ReplicaSyncRequest.DigestEntry
+	6,  // 8: registryv2.ReplicaSyncResponse.members:type_name -> registryv2.Member2
+	2,  // 9: registryv2.ClientFilter.locality:type_name -> registryv2.Locality
+	18, // 10: registryv2.ClientSyncRequest.digest:type_name -> registryv2.ClientSyncRequest.DigestEntry
+	11, // 11: registryv2.ClientSyncRequest.filter:type_name -> registryv2.ClientFilter
+	6,  // 12: registryv2.ClientSyncUpdate.member:type_name -> registryv2.Member2
+	1,  // 13: registryv2.ClientMemberUpdate.update_type:type_name -> registryv2.ClientMemberUpdateType
+	6,  // 14: registryv2.ClientMemberUpdate.member:type_name -> registryv2.Member2
+	4,  // 15: registryv2.ReplicaSyncRequest.DigestEntry.value:type_name -> registryv2.MonotonicTimestamp
+	4,  // 16: registryv2.ClientSyncRequest.DigestEntry.value:type_name -> registryv2.MonotonicTimestamp
+	7,  // 17: registryv2.ReplicaRegistry2.Update:input_type -> registryv2.UpdateRequest
+	9,  // 18: registryv2.ReplicaRegistry2.Sync:input_type -> registryv2.ReplicaSyncRequest
+	12, // 19: registryv2.ClientReadRegistry2.Sync:input_type -> registryv2.ClientSyncRequest
+	14, // 20: registryv2.ClientWriteRegistry2.Sync:input_type -> registryv2.ClientMemberUpdate
+	8,  // 21: registryv2.ReplicaRegistry2.Update:output_type -> registryv2.UpdateResponse
+	10, // 22: registryv2.ReplicaRegistry2.Sync:output_type -> registryv2.ReplicaSyncResponse
+	13, // 23: registryv2.ClientReadRegistry2.Sync:output_type -> registryv2.ClientSyncUpdate
+	15, // 24: registryv2.ClientWriteRegistry2.Sync:output_type -> registryv2.ClientMemberUpdateAck
+	21, // [21:25] is the sub-list for method output_type
+	17, // [17:21] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_registryv2_proto_init() }
@@ -1272,7 +1294,7 @@ func file_registryv2_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_registryv2_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
