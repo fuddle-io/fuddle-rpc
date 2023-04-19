@@ -131,7 +131,7 @@ enum ClientMemberUpdateType {
 
 message ClientMemberUpdate {
 	ClientMemberUpdateType update_type = 1;
-	optional Member2 member = 2;
+	optional MemberState state = 2;
 }
 
 message ClientMemberUpdateAck {
