@@ -124,8 +124,8 @@ message ClientSyncUpdate {
 }
 
 enum ClientMemberUpdateType {
-	REGISTER = 0;
-	UNREGISTER = 1;
+	JOIN = 0;
+	LEAVE = 1;
 	HEARTBEAT = 2;
 }
 
