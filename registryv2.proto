@@ -19,7 +19,11 @@ service ClientReadRegistry2 {
 }
 
 service ClientWriteRegistry2 {
-	rpc Sync(stream ClientMemberUpdate) returns (stream ClientMemberUpdateAck);
+	rpc MemberJoin(ClientMemberJoinRequest) returns (ClientMemberJoinResponse);
+
+	rpc MemberLeave(ClientMemberLeaveRequest) returns (ClientMemberLeaveResponse);
+
+	rpc MemberHeartbeat(ClientMemberHeartbeatRequest) returns (ClientMemberHeartbeatResponse);
 }
 
 message Locality {
@@ -123,16 +127,23 @@ message ClientSyncUpdate {
 	Member2 member = 1;
 }
 
-enum ClientMemberUpdateType {
-	JOIN = 0;
-	LEAVE = 1;
-	HEARTBEAT = 2;
+message ClientMemberJoinRequest {
+	MemberState member = 1;
 }
 
-message ClientMemberUpdate {
-	ClientMemberUpdateType update_type = 1;
-	optional MemberState state = 2;
+message ClientMemberJoinResponse {
 }
 
-message ClientMemberUpdateAck {
+message ClientMemberLeaveRequest {
+	string member_id = 1;
+}
+
+message ClientMemberLeaveResponse {
+}
+
+message ClientMemberHeartbeatRequest {
+	string member_id = 1;
+}
+
+message ClientMemberHeartbeatResponse {
 }

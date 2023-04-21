@@ -261,7 +261,9 @@ var ClientReadRegistry2_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ClientWriteRegistry2Client interface {
-	Sync(ctx context.Context, opts ...grpc.CallOption) (ClientWriteRegistry2_SyncClient, error)
+	MemberJoin(ctx context.Context, in *ClientMemberJoinRequest, opts ...grpc.CallOption) (*ClientMemberJoinResponse, error)
+	MemberLeave(ctx context.Context, in *ClientMemberLeaveRequest, opts ...grpc.CallOption) (*ClientMemberLeaveResponse, error)
+	MemberHeartbeat(ctx context.Context, in *ClientMemberHeartbeatRequest, opts ...grpc.CallOption) (*ClientMemberHeartbeatResponse, error)
 }
 
 type clientWriteRegistry2Client struct {
@@ -272,42 +274,40 @@ func NewClientWriteRegistry2Client(cc grpc.ClientConnInterface) ClientWriteRegis
 	return &clientWriteRegistry2Client{cc}
 }
 
-func (c *clientWriteRegistry2Client) Sync(ctx context.Context, opts ...grpc.CallOption) (ClientWriteRegistry2_SyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &ClientWriteRegistry2_ServiceDesc.Streams[0], "/registryv2.ClientWriteRegistry2/Sync", opts...)
+func (c *clientWriteRegistry2Client) MemberJoin(ctx context.Context, in *ClientMemberJoinRequest, opts ...grpc.CallOption) (*ClientMemberJoinResponse, error) {
+	out := new(ClientMemberJoinResponse)
+	err := c.cc.Invoke(ctx, "/registryv2.ClientWriteRegistry2/MemberJoin", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &clientWriteRegistry2SyncClient{stream}
-	return x, nil
+	return out, nil
 }
 
-type ClientWriteRegistry2_SyncClient interface {
-	Send(*ClientMemberUpdate) error
-	Recv() (*ClientMemberUpdateAck, error)
-	grpc.ClientStream
-}
-
-type clientWriteRegistry2SyncClient struct {
-	grpc.ClientStream
-}
-
-func (x *clientWriteRegistry2SyncClient) Send(m *ClientMemberUpdate) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *clientWriteRegistry2SyncClient) Recv() (*ClientMemberUpdateAck, error) {
-	m := new(ClientMemberUpdateAck)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
+func (c *clientWriteRegistry2Client) MemberLeave(ctx context.Context, in *ClientMemberLeaveRequest, opts ...grpc.CallOption) (*ClientMemberLeaveResponse, error) {
+	out := new(ClientMemberLeaveResponse)
+	err := c.cc.Invoke(ctx, "/registryv2.ClientWriteRegistry2/MemberLeave", in, out, opts...)
+	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	return out, nil
+}
+
+func (c *clientWriteRegistry2Client) MemberHeartbeat(ctx context.Context, in *ClientMemberHeartbeatRequest, opts ...grpc.CallOption) (*ClientMemberHeartbeatResponse, error) {
+	out := new(ClientMemberHeartbeatResponse)
+	err := c.cc.Invoke(ctx, "/registryv2.ClientWriteRegistry2/MemberHeartbeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // ClientWriteRegistry2Server is the server API for ClientWriteRegistry2 service.
 // All implementations must embed UnimplementedClientWriteRegistry2Server
 // for forward compatibility
 type ClientWriteRegistry2Server interface {
-	Sync(ClientWriteRegistry2_SyncServer) error
+	MemberJoin(context.Context, *ClientMemberJoinRequest) (*ClientMemberJoinResponse, error)
+	MemberLeave(context.Context, *ClientMemberLeaveRequest) (*ClientMemberLeaveResponse, error)
+	MemberHeartbeat(context.Context, *ClientMemberHeartbeatRequest) (*ClientMemberHeartbeatResponse, error)
 	mustEmbedUnimplementedClientWriteRegistry2Server()
 }
 
@@ -315,8 +315,14 @@ type ClientWriteRegistry2Server interface {
 type UnimplementedClientWriteRegistry2Server struct {
 }
 
-func (UnimplementedClientWriteRegistry2Server) Sync(ClientWriteRegistry2_SyncServer) error {
-	return status.Errorf(codes.Unimplemented, "method Sync not implemented")
+func (UnimplementedClientWriteRegistry2Server) MemberJoin(context.Context, *ClientMemberJoinRequest) (*ClientMemberJoinResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MemberJoin not implemented")
+}
+func (UnimplementedClientWriteRegistry2Server) MemberLeave(context.Context, *ClientMemberLeaveRequest) (*ClientMemberLeaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MemberLeave not implemented")
+}
+func (UnimplementedClientWriteRegistry2Server) MemberHeartbeat(context.Context, *ClientMemberHeartbeatRequest) (*ClientMemberHeartbeatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MemberHeartbeat not implemented")
 }
 func (UnimplementedClientWriteRegistry2Server) mustEmbedUnimplementedClientWriteRegistry2Server() {}
 
@@ -331,30 +337,58 @@ func RegisterClientWriteRegistry2Server(s grpc.ServiceRegistrar, srv ClientWrite
 	s.RegisterService(&ClientWriteRegistry2_ServiceDesc, srv)
 }
 
-func _ClientWriteRegistry2_Sync_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ClientWriteRegistry2Server).Sync(&clientWriteRegistry2SyncServer{stream})
-}
-
-type ClientWriteRegistry2_SyncServer interface {
-	Send(*ClientMemberUpdateAck) error
-	Recv() (*ClientMemberUpdate, error)
-	grpc.ServerStream
-}
-
-type clientWriteRegistry2SyncServer struct {
-	grpc.ServerStream
-}
-
-func (x *clientWriteRegistry2SyncServer) Send(m *ClientMemberUpdateAck) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *clientWriteRegistry2SyncServer) Recv() (*ClientMemberUpdate, error) {
-	m := new(ClientMemberUpdate)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _ClientWriteRegistry2_MemberJoin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientMemberJoinRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ClientWriteRegistry2Server).MemberJoin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registryv2.ClientWriteRegistry2/MemberJoin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientWriteRegistry2Server).MemberJoin(ctx, req.(*ClientMemberJoinRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientWriteRegistry2_MemberLeave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientMemberLeaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientWriteRegistry2Server).MemberLeave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registryv2.ClientWriteRegistry2/MemberLeave",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientWriteRegistry2Server).MemberLeave(ctx, req.(*ClientMemberLeaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientWriteRegistry2_MemberHeartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientMemberHeartbeatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientWriteRegistry2Server).MemberHeartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registryv2.ClientWriteRegistry2/MemberHeartbeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientWriteRegistry2Server).MemberHeartbeat(ctx, req.(*ClientMemberHeartbeatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // ClientWriteRegistry2_ServiceDesc is the grpc.ServiceDesc for ClientWriteRegistry2 service.
@@ -363,14 +397,20 @@ func (x *clientWriteRegistry2SyncServer) Recv() (*ClientMemberUpdate, error) {
 var ClientWriteRegistry2_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "registryv2.ClientWriteRegistry2",
 	HandlerType: (*ClientWriteRegistry2Server)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "Sync",
-			Handler:       _ClientWriteRegistry2_Sync_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "MemberJoin",
+			Handler:    _ClientWriteRegistry2_MemberJoin_Handler,
+		},
+		{
+			MethodName: "MemberLeave",
+			Handler:    _ClientWriteRegistry2_MemberLeave_Handler,
+		},
+		{
+			MethodName: "MemberHeartbeat",
+			Handler:    _ClientWriteRegistry2_MemberHeartbeat_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "registryv2.proto",
 }
