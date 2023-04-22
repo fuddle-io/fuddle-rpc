@@ -4,18 +4,6 @@ option go_package = "github.com/fuddle-io/fuddle-rpc;rpc";
 
 package registry;
 
-// DEPRICATED
-service Registry {
-	rpc Subscribe(SubscribeRequest) returns (stream RemoteMemberUpdate);
-	rpc Register(stream ClientUpdate) returns (stream ClientAck);
-
-	// Lookup the requested member.
-	rpc Member(MemberRequest) returns (MemberResponse) {}
-
-	// List the members in the registry.
-	rpc Members(MembersRequest) returns (MembersResponse) {}
-}
-
 // A service that clients use to receive registry updates.
 service ClientReadRegistry {
 	// Streams updates to the registry.
@@ -58,20 +46,9 @@ enum MemberStatus {
 	LEFT = 2;
 }
 
-// TODO
-// MemberState
-// Version
-// Member {
-//   MemberState
-//   Version
-//   Liveness
-// }
-
 message Member {
 	string id = 1;
 
-	// TODO remove status from the member? keep member to only client registered
-	// state? Rename MemberState
 	MemberStatus status = 2;
 
 	// Service is the type of service running on the member.
@@ -87,12 +64,6 @@ message Member {
 	string revision = 6;
 
 	map<string, string> metadata = 7;
-}
-
-message LocalMemberUpdate {
-	MemberUpdateType update_type = 1;
-
-	Member member = 2;
 }
 
 message RemoteMemberUpdate {
