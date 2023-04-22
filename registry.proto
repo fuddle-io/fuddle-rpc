@@ -32,6 +32,7 @@ enum MemberUpdateType {
 	UNREGISTER = 1;
 }
 
+// TODO replace with Version2
 message Version {
 	string owner = 1;
 
@@ -40,16 +41,11 @@ message Version {
 	uint64 counter = 3;
 }
 
-enum MemberStatus {
-	UP = 0;
-	DOWN = 1;
-	LEFT = 2;
-}
-
+// TODO replace with Member2
 message Member {
 	string id = 1;
 
-	MemberStatus status = 2;
+	Liveness status = 2;
 
 	// Service is the type of service running on the member.
 	string service = 3;
@@ -110,4 +106,148 @@ message MembersRequest {
 
 message MembersResponse {
 	repeated Member members = 1;
+}
+
+service ReplicaRegistry2 {
+	// Update is used for forward registry updates to replica nodes.
+	rpc Update(UpdateRequest) returns (UpdateResponse);
+
+	// Sync sends the known versions for the members in the registry (or a
+	// subset if too large) and receives any missed updates for those members
+	// in response.
+	rpc Sync(ReplicaSyncRequest) returns (ReplicaSyncResponse);
+}
+
+service ClientReadRegistry2 {
+	rpc Sync(ClientSyncRequest) returns (stream ClientSyncUpdate);
+}
+
+service ClientWriteRegistry2 {
+	rpc MemberJoin(ClientMemberJoinRequest) returns (ClientMemberJoinResponse);
+
+	rpc MemberLeave(ClientMemberLeaveRequest) returns (ClientMemberLeaveResponse);
+
+	rpc MemberHeartbeat(ClientMemberHeartbeatRequest) returns (ClientMemberHeartbeatResponse);
+}
+
+message Locality {
+	string region = 1;
+
+	string availability_zone = 2;
+}
+
+message MemberState {
+	// A unique identifier for the member in the cluster
+	string id = 1;
+
+	// An application defined status for the member (such as booting, active or
+	// leaving).
+	string status = 2;
+
+	// The type of service running on the member (such as orders, redis and
+	// storage).
+	string service = 3;
+
+	// The location of the node in the cluster.
+	Locality locality = 4;
+
+	// The UNIX timestamp in milliseconds that the member started.
+	int64 started = 5;
+
+	// An identifier for the version of the service the member is running, such
+	// as a Git tag or commit SHA.
+	string revision = 6;
+
+	// A set of arbitrary key-value pairs containing application defined state.
+	map<string, string> metadata = 7;
+}
+
+enum Liveness {
+	UP = 0;
+	DOWN = 1;
+	LEFT = 2;
+}
+
+// MonotonicTimestamp is a timestamp that always increases. It includes a
+// timestamp in UNIX milliseconds plus a counter, so if there are multiple
+// timestamps in the same millisecond, the counter is incremented to distinguish
+// between them.
+message MonotonicTimestamp {
+	int64 timestamp = 1;
+	uint64 counter = 2;
+}
+
+message Version2 {
+	string owner_id = 1;
+	// Monotonic timestamp required to order updates that happen in the same
+	// millisecond.
+	MonotonicTimestamp timestamp = 2;
+}
+
+message Member2 {
+	MemberState state = 1;
+
+	Liveness liveness = 2;
+
+	Version2 version = 3;
+
+	// expiry is the time the member should be 'downgraded'. If it is 'down',
+	// its state is changed to 'left', and if it is 'left', it is removed from
+	// the cluster.
+	//
+	// Note if the member is 'up' the expiry is ignored.
+	int64 expiry = 4;
+}
+
+message UpdateRequest {
+	Member2 member = 1;
+}
+
+message UpdateResponse {}
+
+message ReplicaSyncRequest {
+	// The known owner versions on the sender.
+	map<string, MonotonicTimestamp> digest = 1;
+}
+
+message ReplicaSyncResponse {
+	repeated Member2 members = 1; 
+}
+
+message ClientFilter {
+	repeated Locality locality = 1;
+
+	repeated string service = 2;
+}
+
+message ClientSyncRequest {
+	// The known owner versions on the client.
+	map<string, MonotonicTimestamp> digest = 1;
+
+	ClientFilter filter = 2;
+}
+
+message ClientSyncUpdate {
+	Member2 member = 1;
+}
+
+message ClientMemberJoinRequest {
+	MemberState member = 1;
+}
+
+message ClientMemberJoinResponse {
+}
+
+message ClientMemberLeaveRequest {
+	string member_id = 1;
+}
+
+message ClientMemberLeaveResponse {
+}
+
+message ClientMemberHeartbeatRequest {
+	string member_id = 1;
+}
+
+message ClientMemberHeartbeatResponse {
 }
