@@ -50,7 +50,7 @@ func (c *clientReadRegistryClient) Updates(ctx context.Context, in *SubscribeReq
 }
 
 type ClientReadRegistry_UpdatesClient interface {
-	Recv() (*RemoteMemberUpdate, error)
+	Recv() (*Member2, error)
 	grpc.ClientStream
 }
 
@@ -58,8 +58,8 @@ type clientReadRegistryUpdatesClient struct {
 	grpc.ClientStream
 }
 
-func (x *clientReadRegistryUpdatesClient) Recv() (*RemoteMemberUpdate, error) {
-	m := new(RemoteMemberUpdate)
+func (x *clientReadRegistryUpdatesClient) Recv() (*Member2, error) {
+	m := new(Member2)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func _ClientReadRegistry_Updates_Handler(srv interface{}, stream grpc.ServerStre
 }
 
 type ClientReadRegistry_UpdatesServer interface {
-	Send(*RemoteMemberUpdate) error
+	Send(*Member2) error
 	grpc.ServerStream
 }
 
@@ -140,7 +140,7 @@ type clientReadRegistryUpdatesServer struct {
 	grpc.ServerStream
 }
 
-func (x *clientReadRegistryUpdatesServer) Send(m *RemoteMemberUpdate) error {
+func (x *clientReadRegistryUpdatesServer) Send(m *Member2) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -358,7 +358,7 @@ func (c *replicaReadRegistryClient) Updates(ctx context.Context, in *SubscribeRe
 }
 
 type ReplicaReadRegistry_UpdatesClient interface {
-	Recv() (*RemoteMemberUpdate, error)
+	Recv() (*Member2, error)
 	grpc.ClientStream
 }
 
@@ -366,8 +366,8 @@ type replicaReadRegistryUpdatesClient struct {
 	grpc.ClientStream
 }
 
-func (x *replicaReadRegistryUpdatesClient) Recv() (*RemoteMemberUpdate, error) {
-	m := new(RemoteMemberUpdate)
+func (x *replicaReadRegistryUpdatesClient) Recv() (*Member2, error) {
+	m := new(Member2)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -412,7 +412,7 @@ func _ReplicaReadRegistry_Updates_Handler(srv interface{}, stream grpc.ServerStr
 }
 
 type ReplicaReadRegistry_UpdatesServer interface {
-	Send(*RemoteMemberUpdate) error
+	Send(*Member2) error
 	grpc.ServerStream
 }
 
@@ -420,7 +420,7 @@ type replicaReadRegistryUpdatesServer struct {
 	grpc.ServerStream
 }
 
-func (x *replicaReadRegistryUpdatesServer) Send(m *RemoteMemberUpdate) error {
+func (x *replicaReadRegistryUpdatesServer) Send(m *Member2) error {
 	return x.ServerStream.SendMsg(m)
 }
 

@@ -7,7 +7,7 @@ package registry;
 // A service that clients use to receive registry updates.
 service ClientReadRegistry {
 	// Streams updates to the registry.
-	rpc Updates(SubscribeRequest) returns (stream RemoteMemberUpdate);
+	rpc Updates(SubscribeRequest) returns (stream Member2);
 
 	// Lookup the requested member.
 	rpc Member(MemberRequest) returns (MemberResponse) {}
@@ -24,54 +24,11 @@ service ClientWriteRegistry {
 // A service that nodes use to stream updates from other nodes.
 service ReplicaReadRegistry {
 	// Streams updates to members owned by the target node.
-	rpc Updates(SubscribeRequest) returns (stream RemoteMemberUpdate);
-}
-
-enum MemberUpdateType {
-	REGISTER = 0;
-	UNREGISTER = 1;
-}
-
-// TODO replace with Version2
-message Version {
-	string owner = 1;
-
-	int64 timestamp = 2;
-
-	uint64 counter = 3;
-}
-
-// TODO replace with Member2
-message Member {
-	string id = 1;
-
-	Liveness status = 2;
-
-	// Service is the type of service running on the member.
-	string service = 3;
-
-	// Locality is the location of the node in the cluster.
-	string locality = 4;
-
-	// Created is the time the node was created in UNIX milliseconds.
-	int64 created = 5;
-
-	// Revision identifies the version of the service running on the node.
-	string revision = 6;
-
-	map<string, string> metadata = 7;
-}
-
-message RemoteMemberUpdate {
-	MemberUpdateType update_type = 1;
-
-	Member member = 2;
-
-	Version version = 3;
+	rpc Updates(SubscribeRequest) returns (stream Member2);
 }
 
 message SubscribeRequest {
-	map<string, Version> known_members = 1;
+	map<string, Version2> known_members = 1;
 	bool owner_only = 2;
 }
 
@@ -84,7 +41,7 @@ enum ClientUpdateType {
 message ClientUpdate {
 	ClientUpdateType update_type = 1;
 
-	Member member = 2;
+	MemberState member = 2;
 
 	uint64 seq_id = 3;
 }
@@ -98,14 +55,14 @@ message MemberRequest {
 }
 
 message MemberResponse {
-	Member member = 1;
+	Member2 member = 1;
 }
 
 message MembersRequest {
 }
 
 message MembersResponse {
-	repeated Member members = 1;
+	repeated Member2 members = 1;
 }
 
 service ReplicaRegistry2 {
