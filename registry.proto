@@ -25,6 +25,9 @@ service ClientWriteRegistry {
 service ReplicaReadRegistry {
 	// Streams updates to members owned by the target node.
 	rpc Updates(SubscribeRequest) returns (stream Member2);
+
+	// Update is used for forward registry updates to replica nodes.
+	rpc Update(UpdateRequest) returns (UpdateResponse);
 }
 
 message SubscribeRequest {

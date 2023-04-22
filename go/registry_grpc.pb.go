@@ -332,6 +332,8 @@ var ClientWriteRegistry_ServiceDesc = grpc.ServiceDesc{
 type ReplicaReadRegistryClient interface {
 	// Streams updates to members owned by the target node.
 	Updates(ctx context.Context, in *SubscribeRequest, opts ...grpc.CallOption) (ReplicaReadRegistry_UpdatesClient, error)
+	// Update is used for forward registry updates to replica nodes.
+	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
 }
 
 type replicaReadRegistryClient struct {
@@ -374,12 +376,23 @@ func (x *replicaReadRegistryUpdatesClient) Recv() (*Member2, error) {
 	return m, nil
 }
 
+func (c *replicaReadRegistryClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
+	out := new(UpdateResponse)
+	err := c.cc.Invoke(ctx, "/registry.ReplicaReadRegistry/Update", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ReplicaReadRegistryServer is the server API for ReplicaReadRegistry service.
 // All implementations must embed UnimplementedReplicaReadRegistryServer
 // for forward compatibility
 type ReplicaReadRegistryServer interface {
 	// Streams updates to members owned by the target node.
 	Updates(*SubscribeRequest, ReplicaReadRegistry_UpdatesServer) error
+	// Update is used for forward registry updates to replica nodes.
+	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
 	mustEmbedUnimplementedReplicaReadRegistryServer()
 }
 
@@ -389,6 +402,9 @@ type UnimplementedReplicaReadRegistryServer struct {
 
 func (UnimplementedReplicaReadRegistryServer) Updates(*SubscribeRequest, ReplicaReadRegistry_UpdatesServer) error {
 	return status.Errorf(codes.Unimplemented, "method Updates not implemented")
+}
+func (UnimplementedReplicaReadRegistryServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedReplicaReadRegistryServer) mustEmbedUnimplementedReplicaReadRegistryServer() {}
 
@@ -424,13 +440,36 @@ func (x *replicaReadRegistryUpdatesServer) Send(m *Member2) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ReplicaReadRegistry_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ReplicaReadRegistryServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registry.ReplicaReadRegistry/Update",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ReplicaReadRegistryServer).Update(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ReplicaReadRegistry_ServiceDesc is the grpc.ServiceDesc for ReplicaReadRegistry service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ReplicaReadRegistry_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "registry.ReplicaReadRegistry",
 	HandlerType: (*ReplicaReadRegistryServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Update",
+			Handler:    _ReplicaReadRegistry_Update_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Updates",
