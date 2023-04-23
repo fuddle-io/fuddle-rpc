@@ -161,6 +161,7 @@ message Member2 {
 
 message UpdateRequest {
 	Member2 member = 1;
+
 	// ID of the sending node.
 	string source_node_id = 2;
 }
@@ -170,6 +171,9 @@ message UpdateResponse {}
 message ReplicaSyncRequest {
 	// The known owner versions on the sender.
 	map<string, MonotonicTimestamp> digest = 1;
+
+	// ID of the sending node.
+	string source_node_id = 2;
 }
 
 message ReplicaSyncResponse {
